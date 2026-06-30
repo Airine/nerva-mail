@@ -37,8 +37,8 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       --risk-high-bg: rgba(201, 46, 59, 0.1);
       --r-xs: 5px;
       --r-sm: 7px;
-      --r-md: 10px;
-      --r-lg: 14px;
+      --r-md: 8px;
+      --r-lg: 8px;
       --r-full: 999px;
       --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
       --shadow-md: 0 8px 26px -10px rgba(16, 24, 40, 0.16);
@@ -74,20 +74,23 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       outline-offset: 1px;
     }
     .app {
-      min-height: 100vh;
+      width: 100%;
+      height: 100vh;
+      min-height: 0;
       display: grid;
-      grid-template-rows: 64px 1fr;
+      grid-template-rows: 68px minmax(0, 1fr);
       background: var(--bg);
+      overflow: hidden;
     }
     .topbar {
       display: grid;
-      grid-template-columns: minmax(300px, 1fr) repeat(3, minmax(112px, 136px)) 124px;
-      gap: 10px;
+      grid-template-columns: minmax(260px, 1fr) repeat(3, minmax(104px, 128px)) 126px;
+      gap: 12px;
       align-items: center;
-      padding: 12px 18px;
+      min-width: 0;
+      padding: 10px 16px;
       border-bottom: 1px solid var(--border-soft);
-      background: color-mix(in srgb, var(--panel), transparent 4%);
-      box-shadow: var(--shadow-sm);
+      background: color-mix(in srgb, var(--panel), transparent 2%);
       position: sticky;
       top: 0;
       z-index: 5;
@@ -135,12 +138,12 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       white-space: nowrap;
     }
     .metric {
+      height: 44px;
       border: 1px solid var(--border-soft);
       border-radius: var(--r-md);
-      background: var(--card);
-      padding: 7px 10px;
+      background: color-mix(in srgb, var(--card), var(--panel-2) 12%);
+      padding: 7px 11px;
       min-width: 0;
-      box-shadow: var(--shadow-sm);
     }
     .metric b {
       display: block;
@@ -186,27 +189,34 @@ export function ownerConsoleHtml(relayOrigin: string): string {
     }
     .layout {
       display: grid;
-      grid-template-columns: 280px minmax(360px, 1fr) 410px;
+      grid-template-columns: minmax(240px, 280px) minmax(420px, 1fr) minmax(340px, 400px);
+      height: 100%;
       min-height: 0;
+      overflow: hidden;
     }
     .pane {
-      min-height: calc(100vh - 64px);
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
       border-right: 1px solid var(--border-soft);
-      background: var(--bg);
-      overflow: auto;
+      background: color-mix(in srgb, var(--panel), var(--bg) 24%);
+      overflow: hidden;
     }
     .pane:last-child {
       border-right: 0;
     }
     .pane-head {
-      height: 50px;
+      height: 48px;
+      flex: 0 0 auto;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
       padding: 0 14px;
       border-bottom: 1px solid var(--border-soft);
-      background: var(--panel);
+      background: color-mix(in srgb, var(--panel), transparent 2%);
     }
     .pane-head h2 {
       margin: 0;
@@ -234,8 +244,12 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       box-shadow: none;
     }
     .list {
+      min-height: 0;
+      flex: 1 1 auto;
+      overflow: auto;
       padding: 12px;
       display: grid;
+      align-content: start;
       gap: 8px;
     }
     .card {
@@ -244,22 +258,27 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       background: var(--card);
       padding: 12px;
       text-align: left;
-      box-shadow: var(--shadow-sm);
+      min-width: 0;
     }
     .agent-card.active, .mail-row.active {
-      border-color: var(--accent);
-      background: var(--accent-dim);
-      box-shadow: inset 3px 0 0 var(--accent), var(--shadow-sm);
+      border-color: var(--accent-line);
+      background: color-mix(in srgb, var(--accent-dim), var(--card) 78%);
+      box-shadow: inset 3px 0 0 var(--accent);
     }
     .card strong {
       display: block;
       font-size: 13px;
       margin-bottom: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .card small {
       color: var(--text-3);
       display: block;
-      overflow-wrap: anywhere;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .chips {
       display: flex;
@@ -288,7 +307,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
     }
     .mail-row {
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: minmax(0, 1fr) auto;
       gap: 10px;
       border: 1px solid var(--border-soft);
       border-radius: var(--r-lg);
@@ -297,6 +316,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       text-align: left;
       color: var(--text);
       min-height: 92px;
+      min-width: 0;
     }
     .mail-row:hover, .card:hover {
       border-color: var(--border-strong);
@@ -323,8 +343,12 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       text-align: right;
     }
     .detail-body {
+      min-height: 0;
+      flex: 1 1 auto;
+      overflow: auto;
       padding: 14px;
       display: grid;
+      align-content: start;
       gap: 12px;
     }
     .detail-box {
@@ -634,7 +658,8 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       text-align: center;
       border: 1px dashed var(--border);
       border-radius: var(--r-lg);
-      background: var(--panel);
+      background: color-mix(in srgb, var(--card), var(--panel) 36%);
+      line-height: 1.6;
     }
     dialog {
       width: min(620px, calc(100vw - 28px));
@@ -673,9 +698,11 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       }
       .layout {
         grid-template-columns: 1fr;
+        overflow: auto;
       }
       .pane {
         min-height: auto;
+        height: auto;
         border-right: 0;
         border-bottom: 1px solid var(--border-soft);
       }
@@ -1099,13 +1126,15 @@ export function ownerConsoleHtml(relayOrigin: string): string {
 
     async function loadMailboxes() {
       const data = await api("/v0/ui/mailboxes");
-      el("activeDid").textContent = state.session.did;
+      el("activeDid").textContent = compactDid(state.session.did);
+      el("activeDid").title = state.session.did;
       el("heldCredits").textContent = data.credits?.held ?? 0;
       el("agents").innerHTML = "";
       for (const box of data.mailboxes) {
         const card = document.createElement("button");
         card.className = "card agent-card active";
-        card.innerHTML = "<strong>" + escapeHtml(box.displayName || box.agentId || box.did) + "</strong><small>" + escapeHtml(box.mailboxId) + "</small><div class='chips'><span class='chip teal'>" + escapeHtml(t("ownerChip")) + "</span><span class='chip'>" + escapeHtml(t("balanceChip", { balance: data.credits?.balance ?? 0 })) + "</span></div>";
+        card.title = box.did || box.mailboxId || box.agentId || "";
+        card.innerHTML = "<strong>" + escapeHtml(displayAgentName(box)) + "</strong><small>" + escapeHtml(compactDid(box.mailboxId || box.did)) + "</small><div class='chips'><span class='chip teal'>" + escapeHtml(t("ownerChip")) + "</span><span class='chip'>" + escapeHtml(t("balanceChip", { balance: data.credits?.balance ?? 0 })) + "</span></div>";
         card.onclick = () => loadMessages(box.mailboxId);
         el("agents").appendChild(card);
         if (!state.mailboxId) state.mailboxId = box.mailboxId;
@@ -1140,7 +1169,8 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         button.className = "mail-row" + (index === 0 ? " active" : "");
         const raw = row.message?.raw || {};
         const goal = raw.body?.goal || row.message?.thread || row.message?.type;
-        button.innerHTML = "<div><h3>" + escapeHtml(row.message?.type || row.messageId) + " · " + escapeHtml(goal || t("noGoal")) + "</h3><p>" + escapeHtml(t("mailFrom", { sender: row.senderDid })) + " · " + escapeHtml(t("mailState", { state: row.deliveryState })) + " · " + escapeHtml(t("mailPostage", { postage: row.postageCredits })) + "</p><div class='chips'><span class='chip teal'>" + escapeHtml(row.deliveryState) + "</span><span class='chip amber'>" + escapeHtml(t("scoreChip", { score: row.priorityScore })) + "</span></div></div><div class='score'>" + row.postageCredits + "</div>";
+        button.title = row.senderDid || "";
+        button.innerHTML = "<div><h3>" + escapeHtml(row.message?.type || row.messageId) + " · " + escapeHtml(goal || t("noGoal")) + "</h3><p>" + escapeHtml(t("mailFrom", { sender: compactDid(row.senderDid) })) + " · " + escapeHtml(t("mailState", { state: row.deliveryState })) + " · " + escapeHtml(t("mailPostage", { postage: row.postageCredits })) + "</p><div class='chips'><span class='chip teal'>" + escapeHtml(row.deliveryState) + "</span><span class='chip amber'>" + escapeHtml(t("scoreChip", { score: row.priorityScore })) + "</span></div></div><div class='score'>" + row.postageCredits + "</div>";
         button.onclick = () => selectMessage(row, button);
         container.appendChild(button);
         if (index === 0) selectMessage(row, button);
@@ -1245,6 +1275,44 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         '"': "&quot;",
         "'": "&#39;"
       }[char]));
+    }
+
+    function displayAgentName(box) {
+      const explicit = box.displayName && box.displayName !== box.did && box.displayName !== box.agentId ? box.displayName : "";
+      if (explicit) return explicit;
+      return agentNameFromDid(box.did || box.mailboxId || box.agentId) || compactDid(box.did || box.agentId || box.mailboxId);
+    }
+
+    function agentNameFromDid(value) {
+      const did = String(value || "");
+      if (did.startsWith("did:web:")) {
+        const tail = did.split(":").filter(Boolean).pop();
+        return safeDecode(tail || "");
+      }
+      if (did.startsWith("did:key:")) {
+        return compactDid(did.replace("did:key:", ""));
+      }
+      return "";
+    }
+
+    function compactDid(value) {
+      const text = String(value || "");
+      if (text.length <= 42) return text;
+      if (text.startsWith("did:web:")) {
+        const parts = text.split(":");
+        const host = safeDecode(parts[2] || "");
+        const tail = safeDecode(parts[parts.length - 1] || "");
+        return "did:web:" + host + ":...:" + tail;
+      }
+      return text.slice(0, 20) + "..." + text.slice(-14);
+    }
+
+    function safeDecode(value) {
+      try {
+        return decodeURIComponent(value);
+      } catch {
+        return value;
+      }
     }
 
     bindLanguageSwitches();
