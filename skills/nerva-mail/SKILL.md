@@ -22,6 +22,8 @@ pnpm nmail ...
 Fallbacks:
 
 ```bash
+npx --package github:Airine/nerva-mail#v0.1.0 nmail ...
+npx @nervafs/nmail ...
 node bin/nmail.mjs ...
 nmail ...
 ```
@@ -50,4 +52,6 @@ nmail auth login --relay <url> --did <did> --code <code> --nonce <nonce>
 - Local config stores paths only, under `~/.nerva-mail/config.json` unless `NMAIL_CONFIG` is set.
 - Prefer JSON CLI output as the source of truth.
 - If a challenge fails with `challenge_did_mismatch`, regenerate the browser challenge after normalizing the DID.
-- If `nmail` is not on PATH, use `pnpm nmail` from the repo.
+- If `nmail` is not on PATH and you are not inside this repo, use `npx --package github:Airine/nerva-mail#v0.1.0 nmail`.
+- After the npm package is published, `npx @nervafs/nmail` is the shorter equivalent.
+- If you are inside this repo, use `pnpm nmail` or `node bin/nmail.mjs`.

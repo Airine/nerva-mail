@@ -63,7 +63,10 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
     expect(html).toContain("Tell your Agent the code.");
     expect(html).toContain("Waiting for Agent signature.");
     expect(html).toContain("Check now");
-    expect(html).not.toContain("nmail auth login");
+    expect(html).toContain("Send this to your Agent");
+    expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.0 nmail auth login");
+    expect(html).not.toContain("--key-file");
+    expect(html).not.toContain("nonce");
     expect(html).toContain("Advanced Agent ID");
     expect(html).toContain("Defaults to DID#default");
 

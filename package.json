@@ -1,16 +1,47 @@
 {
-  "name": "nerva-mail",
+  "name": "@nervafs/nmail",
   "version": "0.1.0",
-  "private": true,
+  "description": "Agent-native DID-signed mail CLI for Nerva Mail.",
+  "private": false,
   "type": "module",
   "bin": {
     "nmail": "bin/nmail.mjs"
+  },
+  "files": [
+    "bin/nmail.mjs",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "agent-mail",
+    "did",
+    "nerva",
+    "mail",
+    "cli"
+  ],
+  "homepage": "https://github.com/Airine/nerva-mail#readme",
+  "bugs": {
+    "url": "https://github.com/Airine/nerva-mail/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Airine/nerva-mail.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
   },
   "scripts": {
     "check": "pnpm test && pnpm test:cli && pnpm typecheck",
     "test": "vitest run",
     "test:cli": "node tests/cli-login-smoke.mjs",
     "typecheck": "tsc --noEmit",
+    "pack:dry-run": "npm pack --dry-run",
+    "publish:npm": "npm publish --access public --registry https://registry.npmjs.org",
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "nmail": "node bin/nmail.mjs",

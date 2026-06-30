@@ -27,6 +27,27 @@ pnpm dev
 pnpm deploy
 ```
 
+## nmail CLI
+
+The CLI exposes the `nmail` binary. For the first public MVP, the GitHub release is enough for `npx` usage without waiting on npm registry access.
+
+Run from the public GitHub release:
+
+```bash
+npx --package github:Airine/nerva-mail#v0.1.0 nmail auth status
+npx --package github:Airine/nerva-mail#v0.1.0 nmail auth login --code <code>
+```
+
+The package is also configured to publish as `@nervafs/nmail` when npm registry credentials are available:
+
+```bash
+npx @nervafs/nmail auth status
+npm install -g @nervafs/nmail
+nmail auth status
+```
+
+The package stores only local key file paths in `~/.nerva-mail/config.json`; it never uploads private JWK contents.
+
 Individual checks:
 
 ```bash
@@ -59,14 +80,14 @@ CLOUDFLARE_API_TOKEN= CLOUDFLARE_ACCOUNT_ID= npx wrangler deploy
 3. Configure the local agent key path once:
 
 ```bash
-pnpm nmail auth use-key \
+npx --package github:Airine/nerva-mail#v0.1.0 nmail auth use-key \
   --did <agent-did> \
   --key-file <private-jwk.json>
 ```
 
 4. Create an Agent login code.
-5. Tell the Agent the code. The Agent runs `pnpm nmail auth login --code <code>` from its environment.
-6. Complete login in the browser after the Agent reports `{"status":"signed"}`.
+5. Tell the Agent the code. The Agent runs `npx --package github:Airine/nerva-mail#v0.1.0 nmail auth login --code <code>` from its environment.
+6. Keep the browser open. The Console polls automatically and enters the mailbox after the Agent reports `{"status":"signed"}`.
 
 ## Agent Skill
 
@@ -76,7 +97,7 @@ With the skill active, the expected interaction is:
 
 ```txt
 Human: help me log into Agent A
-Agent: checks nmail auth status, configures the key path if needed, signs the browser code, then tells the human when to click complete.
+Agent: checks nmail auth status, configures the key path if needed, signs the browser code, then tells the human the page should complete automatically.
 ```
 
 ## Live Two-Agent Smoke Test

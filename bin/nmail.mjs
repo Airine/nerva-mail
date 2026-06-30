@@ -4,9 +4,14 @@ import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 
 const args = parseArgs(process.argv.slice(2));
+const VERSION = "0.1.0";
 
 try {
-  if (args._[0] === "auth" && args._[1] === "use-key") {
+  if (args.help || args.h || args._[0] === "help") {
+    usage({ stream: process.stdout });
+  } else if (args.version || args.v || args._[0] === "version") {
+    console.log(VERSION);
+  } else if (args._[0] === "auth" && args._[1] === "use-key") {
     await useKey();
   } else if (args._[0] === "auth" && args._[1] === "status") {
     await status();
@@ -181,17 +186,23 @@ function required(value, name) {
   return value;
 }
 
-function usage() {
-  console.error(`Usage:
+function usage({ stream = process.stderr } = {}) {
+  stream.write(`nmail ${VERSION}
+
+Usage:
   nmail auth use-key --did <did> --key-file <private-jwk.json>
   nmail auth status [--did <did>]
   nmail auth login --code <code>
   nmail auth login --relay <url> --did <did> --code <code> --nonce <nonce>
   nmail auth login --relay <url> --did <did> --key-file <private-jwk.json> --code <code> --nonce <nonce>
 
+Run without installing:
+  npx @nervafs/nmail auth login --code <code>
+
 The command signs the browser login challenge and submits it to /v0/ui/login/cli-complete.
 The Agent private key stays on the machine running this CLI. use-key stores only a local path.
-Env fallbacks: NMAIL_CONFIG, NMAIL_DID, NMAIL_KEY_FILE, NMAIL_RELAY, NMAIL_CODE, NMAIL_NONCE.`);
+Env fallbacks: NMAIL_CONFIG, NMAIL_DID, NMAIL_KEY_FILE, NMAIL_RELAY, NMAIL_CODE, NMAIL_NONCE.
+`);
 }
 
 function stableJson(value) {

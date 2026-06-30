@@ -461,6 +461,41 @@ export function ownerConsoleHtml(relayOrigin: string): string {
     .form-kicker {
       margin-bottom: 2px;
     }
+    .agent-instruction {
+      border: 1px solid var(--border-soft);
+      border-radius: var(--r-md);
+      background: var(--panel);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+    .agent-instruction strong {
+      font-size: 13px;
+      font-weight: 650;
+    }
+    .agent-instruction p {
+      margin: 0;
+      color: var(--text-3);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .agent-instruction code {
+      display: block;
+      padding: 10px;
+      border-radius: var(--r-sm);
+      background: var(--raised);
+      border: 1px solid var(--border-soft);
+      color: var(--text-2);
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      line-height: 1.55;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    .agent-instruction a {
+      color: var(--accent);
+      text-decoration: none;
+    }
     .login-form {
       width: min(560px, calc(100% - 48px));
       margin: auto;
@@ -613,7 +648,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       .pane {
         min-height: auto;
         border-right: 0;
-        border-bottom: 1px solid var(--line);
+        border-bottom: 1px solid var(--border-soft);
       }
     }
     @media (max-width: 760px) {
@@ -668,6 +703,11 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         <p id="challengeStatus" class="notice hidden"></p>
         <button id="completeButton" class="primary hidden">Check now</button>
         <p class="notice">Tell your Agent the code. Private keys stay in the Agent environment.</p>
+        <div class="agent-instruction">
+          <strong>Send this to your Agent</strong>
+          <p>Ask the Agent to install the Nerva Mail skill and use the CLI when you share a login code.</p>
+          <code>Use the Nerva Mail skill: https://github.com/Airine/nerva-mail/tree/v0.1.0/skills/nerva-mail. Then sign my codes with: npx --package github:Airine/nerva-mail#v0.1.0 nmail auth login --code &lt;code&gt;. When the npm package is available, use: npx @nervafs/nmail auth login --code &lt;code&gt;.</code>
+        </div>
       </div>
     </section>
   </main>
