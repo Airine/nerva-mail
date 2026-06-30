@@ -189,7 +189,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
     }
     .layout {
       display: grid;
-      grid-template-columns: minmax(240px, 280px) minmax(420px, 1fr) minmax(340px, 400px);
+      grid-template-columns: minmax(220px, 260px) minmax(300px, 390px) minmax(520px, 1fr);
       height: 100%;
       min-height: 0;
       overflow: hidden;
@@ -206,6 +206,9 @@ export function ownerConsoleHtml(relayOrigin: string): string {
     }
     .pane:last-child {
       border-right: 0;
+    }
+    .reader-pane {
+      background: var(--raised);
     }
     .pane-head {
       height: 48px;
@@ -226,6 +229,13 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       color: var(--text-3);
       font-family: var(--font-mono);
       font-weight: 500;
+    }
+    .reader-pane .pane-head h2 {
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 650;
+      text-transform: none;
     }
     .status {
       border-radius: var(--r-full);
@@ -340,6 +350,17 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       min-height: 92px;
       min-width: 0;
     }
+    .inbox-pane .list {
+      gap: 7px;
+      padding: 10px;
+    }
+    .inbox-pane .mail-row {
+      min-height: 82px;
+      padding: 10px;
+    }
+    .inbox-pane .mail-type {
+      margin-bottom: 6px;
+    }
     .mail-row:hover, .card:hover {
       border-color: var(--border-strong);
       background: var(--card-hover);
@@ -369,7 +390,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       min-height: 0;
       flex: 1 1 auto;
       overflow: auto;
-      padding: 14px;
+      padding: 18px 22px;
       display: grid;
       align-content: start;
       gap: 12px;
@@ -378,7 +399,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       border: 1px solid var(--border-soft);
       border-radius: var(--r-lg);
       background: var(--card);
-      padding: 12px;
+      padding: 14px;
       box-shadow: var(--shadow-sm);
     }
     .detail-box h3 {
@@ -898,16 +919,16 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       <button id="composeButton" class="compose" data-i18n="compose">+ 写信</button>
     </header>
     <section class="layout">
-      <aside class="pane">
+      <aside class="pane agents-pane">
         <div class="pane-head"><h2 data-i18n="agentsPane">Agents</h2><span class="status" data-i18n="sessionStatus">session</span></div>
         <div id="agents" class="list"></div>
       </aside>
-      <section class="pane">
-        <div class="pane-head"><h2 data-i18n="priorityInbox">优先收件箱</h2><span id="mailboxState" class="status warn">同步</span></div>
+      <section class="pane inbox-pane">
+        <div class="pane-head"><h2 data-i18n="priorityInbox">收件箱</h2><span id="mailboxState" class="status warn">同步</span></div>
         <div id="messages" class="list"></div>
       </section>
-      <aside class="pane">
-        <div class="pane-head"><h2 data-i18n="envelopePane">信封</h2><div class="row gap-2"><button class="lang-toggle" data-lang-toggle type="button">English</button><button id="logoutButton" class="action secondary" data-i18n="logout">退出</button></div></div>
+      <aside class="pane reader-pane">
+        <div class="pane-head"><h2 data-i18n="envelopePane">信件内容</h2><div class="row gap-2"><button class="lang-toggle" data-lang-toggle type="button">English</button><button id="logoutButton" class="action secondary" data-i18n="logout">退出</button></div></div>
         <div id="detail" class="detail-body"></div>
       </aside>
     </section>
@@ -962,8 +983,8 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         compose: "+ 写信",
         agentsPane: "Agents",
         sessionStatus: "session",
-        priorityInbox: "优先收件箱",
-        envelopePane: "信封",
+        priorityInbox: "收件箱",
+        envelopePane: "信件内容",
         logout: "退出",
         composeTitle: "撰写任务邮件",
         close: "关闭",
@@ -980,7 +1001,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         synced: "已同步",
         noRegisteredAgent: "这个 DID 还没有注册 Agent。",
         emptyMailbox: "邮箱为空。可以撰写一封任务邮件，或等待新的工作进入。",
-        selectMessage: "选择一封邮件来查看信封。",
+        selectMessage: "选择一封邮件来查看内容。",
         mailFrom: "来自 {sender}",
         mailState: "状态 {state}",
         mailPostage: "邮资 {postage}",
@@ -1058,8 +1079,8 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         compose: "+ Compose",
         agentsPane: "Agents",
         sessionStatus: "session",
-        priorityInbox: "Priority Inbox",
-        envelopePane: "Envelope",
+        priorityInbox: "Inbox",
+        envelopePane: "Message",
         logout: "Logout",
         composeTitle: "Compose Task Mail",
         close: "Close",

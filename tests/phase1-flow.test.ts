@@ -86,6 +86,10 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
     expect(html).toContain('class="primary" type="submit" value="default"');
     expect(html).toContain("任务目标");
     expect(html).toContain("原始 JSON 信封");
+    expect(html).toContain("信件内容");
+    expect(html).toContain("Message");
+    expect(html).toContain('class="pane inbox-pane"');
+    expect(html).toContain('class="pane reader-pane"');
     expect(html).toContain('replace(/\\s+/g, " ")');
     expect(html).not.toContain('replace(/s+/g, " ")');
 
