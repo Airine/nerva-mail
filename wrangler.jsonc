@@ -1,0 +1,39 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "lingtai-agent-mail",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-30",
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "mail.nervafs.xyz",
+      "custom_domain": true
+    }
+  ],
+  "vars": {
+    "RELAY_ORIGIN": "https://mail.nervafs.xyz",
+    "BLOB_PROVIDER": "disabled"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "lingtai-mail",
+      "database_id": "de5f5968-c16d-4aee-ae9f-4a6375ae6a79",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "MAILBOX",
+        "class_name": "MailboxObject"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["MailboxObject"]
+    }
+  ]
+}
