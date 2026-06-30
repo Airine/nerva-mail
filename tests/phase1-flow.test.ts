@@ -330,6 +330,7 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
     expect(challenge.agentId).toBe(agent.agentId);
     expect(challenge.command).toContain("nmail auth login");
     expect(challenge.command).toContain(`--did ${agent.did} `);
+    expect(challenge.command).not.toContain("--key-file");
 
     const cliCompleteRequest = await createSignedRequest(agent, "https://mail.nervafs.xyz/v0/ui/login/cli-complete", {
       method: "POST",

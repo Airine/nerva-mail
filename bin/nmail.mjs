@@ -1,17 +1,44 @@
 #!/usr/bin/env node
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { dirname, resolve } from "node:path";
 
 const args = parseArgs(process.argv.slice(2));
 
-if (args._[0] !== "auth" || args._[1] !== "login") {
-  usage();
+try {
+  if (args._[0] === "auth" && args._[1] === "use-key") {
+    await useKey();
+  } else if (args._[0] === "auth" && args._[1] === "login") {
+    await login();
+  } else {
+    usage();
+    process.exit(1);
+  }
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 }
 
-try {
+async function useKey() {
+  const did = required(args.did, "--did");
+  const keyFile = resolve(required(args["key-file"], "--key-file"));
+  JSON.parse(await readFile(keyFile, "utf8"));
+
+  const configPath = nmailConfigPath();
+  const config = await readConfig();
+  config.version = 1;
+  config.keys = config.keys ?? {};
+  config.keys[did] = { keyFile };
+
+  await mkdir(dirname(configPath), { recursive: true });
+  await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
+  console.log(JSON.stringify({ status: "configured", did, keyFile, config: configPath }));
+}
+
+async function login() {
   const relay = required(args.relay, "--relay").replace(/\/+$/, "");
   const did = required(args.did, "--did");
-  const keyFile = required(args["key-file"], "--key-file");
+  const keyFile = await resolveKeyFile(did);
   const code = required(args.code, "--code");
   const nonce = required(args.nonce, "--nonce");
   const keyId = args["key-id"] || `${did}#default`;
@@ -33,13 +60,37 @@ try {
   });
   const text = await response.text();
   if (!response.ok) {
-    console.error(text || `nmail auth login failed with ${response.status}`);
-    process.exit(1);
+    throw new Error(text || `nmail auth login failed with ${response.status}`);
   }
   console.log(text || JSON.stringify({ status: "signed" }));
-} catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
+}
+
+async function resolveKeyFile(did) {
+  if (args["key-file"] && args["key-file"] !== "true") return args["key-file"];
+  if (process.env.NMAIL_KEY_FILE) return process.env.NMAIL_KEY_FILE;
+
+  const config = await readConfig();
+  const keyFile = config.keys?.[did]?.keyFile;
+  if (keyFile) return keyFile;
+
+  throw new Error(`No key file configured for ${did}.
+Run once:
+  nmail auth use-key --did ${did} --key-file <private-jwk.json>
+
+Then rerun the browser login command without --key-file.`);
+}
+
+async function readConfig() {
+  try {
+    return JSON.parse(await readFile(nmailConfigPath(), "utf8"));
+  } catch (error) {
+    if (error?.code === "ENOENT") return { version: 1, keys: {} };
+    throw error;
+  }
+}
+
+function nmailConfigPath() {
+  return resolve(process.env.NMAIL_CONFIG || `${homedir()}/.nerva-mail/config.json`);
 }
 
 function parseArgs(values) {
@@ -69,10 +120,12 @@ function required(value, name) {
 
 function usage() {
   console.error(`Usage:
+  nmail auth use-key --did <did> --key-file <private-jwk.json>
+  nmail auth login --relay <url> --did <did> --code <code> --nonce <nonce>
   nmail auth login --relay <url> --did <did> --key-file <private-jwk.json> --code <code> --nonce <nonce>
 
 The command signs the browser login challenge and submits it to /v0/ui/login/cli-complete.
-The Agent private key stays on the machine running this CLI.`);
+The Agent private key stays on the machine running this CLI. use-key stores only a local path.`);
 }
 
 function stableJson(value) {

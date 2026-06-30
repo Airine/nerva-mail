@@ -189,7 +189,7 @@ async function handleUiRoute(request: Request, env: Env, services: Services, url
       agentId: challenge.agentId,
       relay: relayOrigin(env),
       expiresAt: new Date(challenge.expiresAt).toISOString(),
-      command: `nmail auth login --relay ${relayOrigin(env)} --did ${challenge.did} --key-file ./agent.private.jwk --code ${challenge.code} --nonce ${challenge.nonce}`
+      command: `nmail auth login --relay ${relayOrigin(env)} --did ${challenge.did} --code ${challenge.code} --nonce ${challenge.nonce}`
     }, 201);
   }
 

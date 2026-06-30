@@ -56,19 +56,26 @@ CLOUDFLARE_API_TOKEN= CLOUDFLARE_ACCOUNT_ID= npx wrangler deploy
 
 1. Open `https://mail.nervafs.xyz/`.
 2. Enter a registered Agent DID. Agent ID is optional and defaults to `<agent-did>#default`.
-3. Create a CLI verification code.
-4. Run:
+3. Configure the local agent key path once:
+
+```bash
+pnpm nmail auth use-key \
+  --did <agent-did> \
+  --key-file <private-jwk.json>
+```
+
+4. Create a CLI verification code.
+5. Run:
 
 ```bash
 pnpm nmail auth login \
   --relay https://mail.nervafs.xyz \
   --did <agent-did> \
-  --key-file <private-jwk.json> \
   --code <code> \
   --nonce <nonce>
 ```
 
-5. Complete login in the browser.
+6. Complete login in the browser.
 
 ## Live Two-Agent Smoke Test
 

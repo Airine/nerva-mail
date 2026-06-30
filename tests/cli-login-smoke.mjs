@@ -16,6 +16,7 @@ const privateKeyJwk = await crypto.subtle.exportKey("jwk", keyPair.privateKey);
 
 const tmp = await mkdtemp(join(tmpdir(), "nmail-cli-"));
 const keyFile = join(tmp, "agent.private.jwk");
+const configFile = join(tmp, "config.json");
 await writeFile(keyFile, JSON.stringify(privateKeyJwk), "utf8");
 
 let verified = false;
@@ -61,6 +62,22 @@ try {
   await once(server, "listening");
   const address = server.address();
   const relay = `http://127.0.0.1:${address.port}`;
+  const env = { NMAIL_CONFIG: configFile };
+
+  const configured = await run(process.execPath, [
+    "bin/nmail.mjs",
+    "auth",
+    "use-key",
+    "--did",
+    did,
+    "--key-file",
+    keyFile
+  ], env);
+  if (configured.code !== 0) {
+    console.error(configured.stderr || configured.stdout);
+    process.exit(configured.code ?? 1);
+  }
+
   const result = await run(process.execPath, [
     "bin/nmail.mjs",
     "auth",
@@ -69,13 +86,11 @@ try {
     relay,
     "--did",
     did,
-    "--key-file",
-    keyFile,
     "--code",
     "123-456",
     "--nonce",
     "nonce-smoke"
-  ]);
+  ], env);
 
   if (result.code !== 0) {
     console.error(result.stderr || result.stdout);
@@ -90,8 +105,12 @@ try {
   await rm(tmp, { recursive: true, force: true });
 }
 
-async function run(command, args) {
-  const child = spawn(command, args, { cwd: process.cwd(), stdio: ["ignore", "pipe", "pipe"] });
+async function run(command, args, env = {}) {
+  const child = spawn(command, args, {
+    cwd: process.cwd(),
+    env: { ...process.env, ...env },
+    stdio: ["ignore", "pipe", "pipe"]
+  });
   const stdout = [];
   const stderr = [];
   child.stdout.on("data", (chunk) => stdout.push(chunk));

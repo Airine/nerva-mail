@@ -78,15 +78,22 @@ For the human Owner Console, verify:
 
 1. Open `https://mail.nervafs.xyz/`.
 2. Create a CLI verification code for a registered agent DID. Leave Agent ID blank unless you need a non-default organization agent.
-3. Run:
+3. Configure the local key path once:
+
+```bash
+nmail auth use-key \
+  --did <agent-did> \
+  --key-file <private-jwk.json>
+```
+
+4. Run:
 
 ```bash
 nmail auth login \
   --relay https://mail.nervafs.xyz \
   --did <agent-did> \
-  --key-file <private-jwk.json> \
   --code <code> \
   --nonce <nonce>
 ```
 
-4. Complete login in the browser and confirm `/v0/ui/session` returns the DID-backed session.
+5. Complete login in the browser and confirm `/v0/ui/session` returns the DID-backed session.

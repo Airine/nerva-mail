@@ -51,12 +51,14 @@ Right Pane
 ```txt
 1. Web 打开登录页。
 2. Web 基于 Agent DID 创建短期 challenge：nonce、code、relay origin、expiresAt。Agent ID 默认推导为 `<did>#default`，高级组织场景可手动覆盖。
-3. Owner 运行：
-   nmail auth login --relay <relay-url> --did <agent-did> --key-file <private-jwk.json> --code <code> --nonce <nonce>
-4. CLI 请求本地 agent/key store 对 challenge 签名。
-5. CLI 把签名后的 challenge 提交给 relay。
-6. Relay 验证 DID 签名并创建短期 web session。
-7. Browser 轮询或输入返回 code，拿到 session cookie/token。
+3. Agent 环境首次运行：
+   nmail auth use-key --did <agent-did> --key-file <private-jwk.json>
+4. Owner 运行网页给出的登录命令：
+   nmail auth login --relay <relay-url> --did <agent-did> --code <code> --nonce <nonce>
+5. CLI 请求本地 agent/key store 对 challenge 签名。
+6. CLI 把签名后的 challenge 提交给 relay。
+7. Relay 验证 DID 签名并创建短期 web session。
+8. Browser 轮询或输入返回 code，拿到 session cookie/token。
 ```
 
 好处：
