@@ -686,8 +686,18 @@ export function ownerConsoleHtml(relayOrigin: string): string {
     }
 
     el("challengeButton").onclick = async () => {
-      const did = el("loginDid").value.trim();
-      const agentId = el("loginAgentId").value.trim() || did + "#default";
+      let did = el("loginDid").value.trim();
+      let agentId = el("loginAgentId").value.trim();
+      const fragmentIndex = did.indexOf("#");
+      if (fragmentIndex >= 0) {
+        const fragment = did.slice(fragmentIndex + 1);
+        did = did.slice(0, fragmentIndex);
+        if (!agentId && fragment) agentId = did + "#" + fragment;
+        el("loginDid").value = did;
+        el("loginAgentId").value = agentId;
+        document.querySelector(".advanced-login").open = true;
+      }
+      agentId = agentId || did + "#default";
       if (!did) return;
       const challenge = await api("/v0/ui/login/challenge", {
         method: "POST",

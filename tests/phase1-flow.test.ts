@@ -319,14 +319,17 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
       new Request("https://mail.nervafs.xyz/v0/ui/login/challenge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ did: agent.did })
+        body: JSON.stringify({ did: agent.agentId })
       }),
       services.env,
       services
     );
     expect(challengeResponse.status).toBe(201);
-    const challenge = await challengeResponse.json() as { code: string; nonce: string; command: string };
+    const challenge = await challengeResponse.json() as { code: string; nonce: string; command: string; did: string; agentId: string };
+    expect(challenge.did).toBe(agent.did);
+    expect(challenge.agentId).toBe(agent.agentId);
     expect(challenge.command).toContain("nmail auth login");
+    expect(challenge.command).toContain(`--did ${agent.did} `);
 
     const cliCompleteRequest = await createSignedRequest(agent, "https://mail.nervafs.xyz/v0/ui/login/cli-complete", {
       method: "POST",

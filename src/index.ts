@@ -171,14 +171,13 @@ async function handleUiRoute(request: Request, env: Env, services: Services, url
 
   if (request.method === "POST" && url.pathname === "/v0/ui/login/challenge") {
     const body = parseJson<{ did?: string; agentId?: string }>(bodyText);
-    const did = body.did?.trim();
-    if (!did) throw new HttpError("did_required", 400);
+    const { did, agentId } = normalizeLoginIdentity(body.did, body.agentId);
     const now = services.clock();
     const challenge = {
       code: await uniqueLoginCode(services),
       nonce: randomToken(18),
       did,
-      agentId: body.agentId?.trim() || undefined,
+      agentId,
       createdAt: now,
       expiresAt: now + LOGIN_CHALLENGE_TTL_MS
     };
@@ -318,6 +317,21 @@ async function handleUiRoute(request: Request, env: Env, services: Services, url
   }
 
   return json({ error: "not_found" }, 404);
+}
+
+function normalizeLoginIdentity(rawDid: string | undefined, rawAgentId: string | undefined): { did: string; agentId?: string } {
+  const input = rawDid?.trim();
+  if (!input) throw new HttpError("did_required", 400);
+
+  const fragmentIndex = input.indexOf("#");
+  const did = fragmentIndex >= 0 ? input.slice(0, fragmentIndex) : input;
+  if (!did) throw new HttpError("did_required", 400);
+
+  const embeddedAgentId = fragmentIndex >= 0 && input.slice(fragmentIndex + 1)
+    ? `${did}#${input.slice(fragmentIndex + 1)}`
+    : undefined;
+  const agentId = rawAgentId?.trim() || embeddedAgentId;
+  return agentId ? { did, agentId } : { did };
 }
 
 function createServices(env: Env): Services {
