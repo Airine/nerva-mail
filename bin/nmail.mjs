@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 
@@ -8,6 +8,8 @@ const args = parseArgs(process.argv.slice(2));
 try {
   if (args._[0] === "auth" && args._[1] === "use-key") {
     await useKey();
+  } else if (args._[0] === "auth" && args._[1] === "status") {
+    await status();
   } else if (args._[0] === "auth" && args._[1] === "login") {
     await login();
   } else {
@@ -20,8 +22,8 @@ try {
 }
 
 async function useKey() {
-  const did = required(args.did, "--did");
-  const keyFile = resolve(required(args["key-file"], "--key-file"));
+  const { did } = normalizeDid(required(args.did ?? process.env.NMAIL_DID, "--did"));
+  const keyFile = resolve(required(args["key-file"] ?? process.env.NMAIL_KEY_FILE, "--key-file"));
   JSON.parse(await readFile(keyFile, "utf8"));
 
   const configPath = nmailConfigPath();
@@ -35,13 +37,35 @@ async function useKey() {
   console.log(JSON.stringify({ status: "configured", did, keyFile, config: configPath }));
 }
 
+async function status() {
+  const config = await readConfig();
+  const configPath = nmailConfigPath();
+  const didInput = args.did ?? process.env.NMAIL_DID;
+  if (!didInput || didInput === "true") {
+    const dids = Object.keys(config.keys ?? {});
+    console.log(JSON.stringify({ status: "ok", config: configPath, dids }));
+    return;
+  }
+
+  const { did } = normalizeDid(didInput);
+  const keyFile = config.keys?.[did]?.keyFile ?? null;
+  console.log(JSON.stringify({
+    status: "ok",
+    did,
+    configured: Boolean(keyFile),
+    keyFile,
+    keyFileExists: keyFile ? await exists(keyFile) : false,
+    config: configPath
+  }));
+}
+
 async function login() {
-  const relay = required(args.relay, "--relay").replace(/\/+$/, "");
-  const did = required(args.did, "--did");
+  const relay = required(args.relay ?? process.env.NMAIL_RELAY, "--relay").replace(/\/+$/, "");
+  const { did, keyId: defaultKeyId } = normalizeDid(required(args.did ?? process.env.NMAIL_DID, "--did"));
   const keyFile = await resolveKeyFile(did);
-  const code = required(args.code, "--code");
-  const nonce = required(args.nonce, "--nonce");
-  const keyId = args["key-id"] || `${did}#default`;
+  const code = required(args.code ?? process.env.NMAIL_CODE, "--code");
+  const nonce = required(args.nonce ?? process.env.NMAIL_NONCE, "--nonce");
+  const keyId = args["key-id"] || defaultKeyId || `${did}#default`;
   const privateKeyJwk = JSON.parse(await readFile(keyFile, "utf8"));
   const bodyText = stableJson({ code, nonce });
   const timestamp = String(Date.now());
@@ -93,6 +117,24 @@ function nmailConfigPath() {
   return resolve(process.env.NMAIL_CONFIG || `${homedir()}/.nerva-mail/config.json`);
 }
 
+function normalizeDid(value) {
+  const input = String(value).trim();
+  const fragmentIndex = input.indexOf("#");
+  if (fragmentIndex < 0) return { did: input };
+  const did = input.slice(0, fragmentIndex);
+  const fragment = input.slice(fragmentIndex + 1);
+  return { did, keyId: fragment ? `${did}#${fragment}` : undefined };
+}
+
+async function exists(path) {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function parseArgs(values) {
   const parsed = { _: [] };
   for (let index = 0; index < values.length; index += 1) {
@@ -121,11 +163,13 @@ function required(value, name) {
 function usage() {
   console.error(`Usage:
   nmail auth use-key --did <did> --key-file <private-jwk.json>
+  nmail auth status [--did <did>]
   nmail auth login --relay <url> --did <did> --code <code> --nonce <nonce>
   nmail auth login --relay <url> --did <did> --key-file <private-jwk.json> --code <code> --nonce <nonce>
 
 The command signs the browser login challenge and submits it to /v0/ui/login/cli-complete.
-The Agent private key stays on the machine running this CLI. use-key stores only a local path.`);
+The Agent private key stays on the machine running this CLI. use-key stores only a local path.
+Env fallbacks: NMAIL_CONFIG, NMAIL_DID, NMAIL_KEY_FILE, NMAIL_RELAY, NMAIL_CODE, NMAIL_NONCE.`);
 }
 
 function stableJson(value) {

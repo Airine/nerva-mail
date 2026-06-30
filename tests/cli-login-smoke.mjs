@@ -77,6 +77,17 @@ try {
     console.error(configured.stderr || configured.stdout);
     process.exit(configured.code ?? 1);
   }
+  const status = await run(process.execPath, [
+    "bin/nmail.mjs",
+    "auth",
+    "status",
+    "--did",
+    `${did}#default`
+  ], env);
+  if (status.code !== 0 || !JSON.parse(status.stdout).configured) {
+    console.error(status.stderr || status.stdout);
+    process.exit(status.code ?? 1);
+  }
 
   const result = await run(process.execPath, [
     "bin/nmail.mjs",
@@ -85,7 +96,7 @@ try {
     "--relay",
     relay,
     "--did",
-    did,
+    `${did}#default`,
     "--code",
     "123-456",
     "--nonce",

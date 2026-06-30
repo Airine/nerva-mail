@@ -77,6 +77,17 @@ pnpm nmail auth login \
 
 6. Complete login in the browser.
 
+## Agent Skill
+
+This repo includes a Codex-compatible skill at `skills/nerva-mail/SKILL.md`. Install or copy it into an agent skill directory when you want the agent to handle Owner Console login in response to natural language instead of asking humans to edit CLI commands.
+
+With the skill active, the expected interaction is:
+
+```txt
+Human: help me log into Agent A
+Agent: checks nmail auth status, configures the key path if needed, signs the browser code, then tells the human when to click complete.
+```
+
 ## Live Two-Agent Smoke Test
 
 The helper in `scripts/live-agent-mail.mjs` can seed two temporary DID agents into the configured remote D1, run signed send/sync/claim/ack flows, and verify final delivery and credit state.
