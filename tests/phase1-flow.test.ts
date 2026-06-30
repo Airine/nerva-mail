@@ -58,17 +58,22 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toContain("text/html");
     const html = await response.text();
-    expect(html).toContain("Agent Mail Owner Console");
+    expect(html).toContain('<html lang="zh-CN">');
+    expect(html).toContain("Nerva Mail 主控台");
+    expect(html).toContain('<span id="activeDid">未登录</span>');
+    expect(html).toContain("生成 Agent 登录 CODE");
+    expect(html).toContain("把 CODE 告诉你的 Agent");
+    expect(html).toContain("正在等待 Agent 签名");
+    expect(html).toContain("立即检查");
+    expect(html).toContain("发给你的 Agent");
     expect(html).toContain("Create Agent login code");
     expect(html).toContain("Tell your Agent the code.");
     expect(html).toContain("Waiting for Agent signature.");
-    expect(html).toContain("Check now");
-    expect(html).toContain("Send this to your Agent");
     expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.0 nmail auth login");
     expect(html).not.toContain("--key-file");
     expect(html).not.toContain("nonce");
-    expect(html).toContain("Advanced Agent ID");
-    expect(html).toContain("Defaults to DID#default");
+    expect(html).toContain("高级 Agent ID");
+    expect(html).toContain("默认 DID#default");
 
     const headResponse = await handleRequest(
       new Request("https://mail.nervafs.xyz/", { method: "HEAD" }),

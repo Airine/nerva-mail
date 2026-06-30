@@ -1,10 +1,10 @@
 export function ownerConsoleHtml(relayOrigin: string): string {
   return `<!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Agent Mail Owner Console</title>
+  <title>Nerva Mail 主控台</title>
   <link rel="icon" href="data:,">
   <style>
     @import url("https://fonts.googleapis.com/css2?family=Geist:wght@300;400;450;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap");
@@ -160,6 +160,29 @@ export function ownerConsoleHtml(relayOrigin: string): string {
     }
     .compose:hover {
       background: var(--accent-2);
+    }
+    .lang-toggle {
+      height: 30px;
+      padding: 0 10px;
+      border-radius: var(--r-sm);
+      background: var(--panel-2);
+      color: var(--text-2);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 550;
+      white-space: nowrap;
+    }
+    .lang-toggle:hover {
+      background: var(--card-hover);
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+    .row {
+      display: flex;
+      align-items: center;
+    }
+    .gap-2 {
+      gap: 8px;
     }
     .layout {
       display: grid;
@@ -461,6 +484,12 @@ export function ownerConsoleHtml(relayOrigin: string): string {
     .form-kicker {
       margin-bottom: 2px;
     }
+    .form-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
     .agent-instruction {
       border: 1px solid var(--border-soft);
       border-radius: var(--r-md);
@@ -673,40 +702,43 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       <div class="login-copy">
         <div class="login-lockup">
           <div class="mark" aria-hidden="true"></div>
-          <span>Nerva Mail</span>
+          <span data-i18n="brandName">Nerva Mail</span>
         </div>
         <div class="login-copy-body">
-          <div class="login-kicker">Agent-native mail</div>
-          <h1>Stop chasing inboxes.<br>Clear decisions.</h1>
-          <p>Sign in with an Agent-owned DID, review signed task mail, inspect delivery state, and settle attention credits. Private keys stay with the Agent.</p>
+          <div class="login-kicker" data-i18n="loginKicker">AGENT 原生邮箱</div>
+          <h1 data-i18n-html="loginHeadline">别追着收件箱跑。<br>让 Agent 清掉决策。</h1>
+          <p data-i18n="loginDescription">用 Agent 持有的 DID 登录，查看已签名任务邮件、处理投递状态，并结算注意力积分。私钥始终留在 Agent 环境。</p>
           <div class="intro-checks">
-            <div><b>1</b><span><strong>DID-signed access</strong><small>Owner Console opens only after the Agent signs a short code.</small></span></div>
-            <div><b>2</b><span><strong>Actionable mailbox</strong><small>Claims, leases, acknowledgements, and postage are visible in one place.</small></span></div>
-            <div><b>3</b><span><strong>Auditable decisions</strong><small>Every envelope keeps the state needed for human review.</small></span></div>
+            <div><b>1</b><span><strong data-i18n="checkOneTitle">DID 签名访问</strong><small data-i18n="checkOneBody">只有 Agent 签完短 CODE 后，Owner Console 才会打开。</small></span></div>
+            <div><b>2</b><span><strong data-i18n="checkTwoTitle">可执行邮箱</strong><small data-i18n="checkTwoBody">Claim、lease、ack 和 postage 状态集中在一个界面。</small></span></div>
+            <div><b>3</b><span><strong data-i18n="checkThreeTitle">可审计决策</strong><small data-i18n="checkThreeBody">每个信封都保留人类复核所需的状态。</small></span></div>
           </div>
         </div>
-        <div class="login-profile"><span class="avatar">OW</span><span>Setting up an Agent-owned workspace</span></div>
+        <div class="login-profile"><span class="avatar">OW</span><span data-i18n="profileText">正在设置 Agent 工作空间</span></div>
       </div>
       <div class="login-form">
-        <div class="form-kicker">Owner authorization</div>
-        <label>Agent DID
-          <input id="loginDid" placeholder="did:key:researcher or did:web:nervafs.xyz">
+        <div class="form-head">
+          <div class="form-kicker" data-i18n="formKicker">OWNER 授权</div>
+          <button class="lang-toggle" data-lang-toggle type="button">English</button>
+        </div>
+        <label><span data-i18n="agentDidLabel">Agent DID</span>
+          <input id="loginDid" placeholder="did:key:researcher or did:web:nervafs.xyz" data-i18n-placeholder="agentDidPlaceholder">
         </label>
         <details class="advanced-login">
-          <summary>Advanced Agent ID</summary>
-          <label>Agent ID
-            <input id="loginAgentId" placeholder="Defaults to DID#default">
+          <summary data-i18n="advancedAgentId">高级 Agent ID</summary>
+          <label><span data-i18n="agentIdLabel">Agent ID</span>
+            <input id="loginAgentId" placeholder="默认 DID#default" data-i18n-placeholder="agentIdPlaceholder">
           </label>
         </details>
-        <button id="challengeButton" class="primary">Create Agent login code</button>
+        <button id="challengeButton" class="primary" data-i18n="createCode">生成 Agent 登录 CODE</button>
         <div id="challengeOutput" class="codebox hidden"></div>
         <p id="challengeStatus" class="notice hidden"></p>
-        <button id="completeButton" class="primary hidden">Check now</button>
-        <p class="notice">Tell your Agent the code. Private keys stay in the Agent environment.</p>
+        <button id="completeButton" class="primary hidden" data-i18n="checkNow">立即检查</button>
+        <p class="notice" data-i18n="loginNotice">把 CODE 告诉你的 Agent。私钥留在 Agent 环境中。</p>
         <div class="agent-instruction">
-          <strong>Send this to your Agent</strong>
-          <p>Ask the Agent to install the Nerva Mail skill and use the CLI when you share a login code.</p>
-          <code>Use the Nerva Mail skill: https://github.com/Airine/nerva-mail/tree/v0.1.0/skills/nerva-mail. Then sign my codes with: npx --package github:Airine/nerva-mail#v0.1.0 nmail auth login --code &lt;code&gt;. When the npm package is available, use: npx @nervafs/nmail auth login --code &lt;code&gt;.</code>
+          <strong data-i18n="instructionTitle">发给你的 Agent</strong>
+          <p data-i18n="instructionBody">让 Agent 安装 Nerva Mail skill，并在你分享登录 CODE 时调用 CLI 签名。</p>
+          <code data-i18n="instructionCommand">使用 Nerva Mail skill：https://github.com/Airine/nerva-mail/tree/v0.1.0/skills/nerva-mail。之后用这个命令签我的登录 CODE：npx --package github:Airine/nerva-mail#v0.1.0 nmail auth login --code &lt;code&gt;。npm 包可用后，也可以用：npx @nervafs/nmail auth login --code &lt;code&gt;。</code>
         </div>
       </div>
     </section>
@@ -717,26 +749,26 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       <div class="brand">
         <div class="mark" aria-hidden="true"></div>
         <div class="brand-title">
-          <strong>Agent Mail Owner Console</strong>
-          <span id="activeDid">Not signed in</span>
+          <strong data-i18n="consoleTitle">Agent Mail 主控台</strong>
+          <span id="activeDid">未登录</span>
         </div>
       </div>
-      <div class="metric"><b id="inboxCount">0</b><span>Inbox</span></div>
-      <div class="metric"><b id="heldCredits">0</b><span>Held credits</span></div>
-      <div class="metric"><b id="activeLeases">0</b><span>Active leases</span></div>
-      <button id="composeButton" class="compose">+ Compose</button>
+      <div class="metric"><b id="inboxCount">0</b><span data-i18n="inboxMetric">收件箱</span></div>
+      <div class="metric"><b id="heldCredits">0</b><span data-i18n="heldMetric">冻结积分</span></div>
+      <div class="metric"><b id="activeLeases">0</b><span data-i18n="leasesMetric">活跃租约</span></div>
+      <button id="composeButton" class="compose" data-i18n="compose">+ 写信</button>
     </header>
     <section class="layout">
       <aside class="pane">
-        <div class="pane-head"><h2>Agents</h2><span class="status">session</span></div>
+        <div class="pane-head"><h2 data-i18n="agentsPane">Agents</h2><span class="status" data-i18n="sessionStatus">session</span></div>
         <div id="agents" class="list"></div>
       </aside>
       <section class="pane">
-        <div class="pane-head"><h2>Priority Inbox</h2><span id="mailboxState" class="status warn">sync</span></div>
+        <div class="pane-head"><h2 data-i18n="priorityInbox">优先收件箱</h2><span id="mailboxState" class="status warn">同步</span></div>
         <div id="messages" class="list"></div>
       </section>
       <aside class="pane">
-        <div class="pane-head"><h2>Envelope</h2><button id="logoutButton" class="action secondary">Logout</button></div>
+        <div class="pane-head"><h2 data-i18n="envelopePane">信封</h2><div class="row gap-2"><button class="lang-toggle" data-lang-toggle type="button">English</button><button id="logoutButton" class="action secondary" data-i18n="logout">退出</button></div></div>
         <div id="detail" class="detail-body"></div>
       </aside>
     </section>
@@ -744,20 +776,170 @@ export function ownerConsoleHtml(relayOrigin: string): string {
 
   <dialog id="composeDialog">
     <form id="composeForm" method="dialog">
-      <div class="dialog-head"><h2>Compose Task Mail</h2><button class="action secondary" value="cancel">Close</button></div>
+      <div class="dialog-head"><h2 data-i18n="composeTitle">撰写任务邮件</h2><button class="action secondary" value="cancel" data-i18n="close">关闭</button></div>
       <div class="dialog-body">
-        <label>To DID<input id="composeTo" required></label>
-        <label>Goal<textarea id="composeGoal" required></textarea></label>
-        <label>Postage credits<input id="composePostage" type="number" min="0" value="0"></label>
-        <button class="primary" value="default">Send task.request</button>
-        <p class="notice">Attachments are disabled in Phase 1.</p>
+        <label><span data-i18n="toDid">收件 DID</span><input id="composeTo" required></label>
+        <label><span data-i18n="goal">目标</span><textarea id="composeGoal" required></textarea></label>
+        <label><span data-i18n="postageCredits">邮资积分</span><input id="composePostage" type="number" min="0" value="0"></label>
+        <button class="primary" value="default" data-i18n="sendTask">发送 task.request</button>
+        <p class="notice" data-i18n="attachmentsDisabled">Phase 1 暂不支持附件。</p>
       </div>
     </form>
   </dialog>
 
   <script>
     const relayOrigin = ${JSON.stringify(relayOrigin)};
-    const state = { session: null, mailboxId: null, messages: [], selected: null, challenge: null, loginPollTimer: null };
+    const i18n = {
+      zh: {
+        documentTitle: "Nerva Mail 主控台",
+        brandName: "Nerva Mail",
+        loginKicker: "AGENT 原生邮箱",
+        loginHeadline: "别追着收件箱跑。<br>让 Agent 清掉决策。",
+        loginDescription: "用 Agent 持有的 DID 登录，查看已签名任务邮件、处理投递状态，并结算注意力积分。私钥始终留在 Agent 环境。",
+        checkOneTitle: "DID 签名访问",
+        checkOneBody: "只有 Agent 签完短 CODE 后，Owner Console 才会打开。",
+        checkTwoTitle: "可执行邮箱",
+        checkTwoBody: "Claim、lease、ack 和 postage 状态集中在一个界面。",
+        checkThreeTitle: "可审计决策",
+        checkThreeBody: "每个信封都保留人类复核所需的状态。",
+        profileText: "正在设置 Agent 工作空间",
+        formKicker: "OWNER 授权",
+        agentDidLabel: "Agent DID",
+        agentDidPlaceholder: "did:key:researcher 或 did:web:nervafs.xyz",
+        advancedAgentId: "高级 Agent ID",
+        agentIdLabel: "Agent ID",
+        agentIdPlaceholder: "默认 DID#default",
+        createCode: "生成 Agent 登录 CODE",
+        checkNow: "立即检查",
+        loginNotice: "把 CODE 告诉你的 Agent。私钥留在 Agent 环境中。",
+        instructionTitle: "发给你的 Agent",
+        instructionBody: "让 Agent 安装 Nerva Mail skill，并在你分享登录 CODE 时调用 CLI 签名。",
+        instructionCommand: "使用 Nerva Mail skill：https://github.com/Airine/nerva-mail/tree/v0.1.0/skills/nerva-mail。之后用这个命令签我的登录 CODE：npx --package github:Airine/nerva-mail#v0.1.0 nmail auth login --code <code>。npm 包可用后，也可以用：npx @nervafs/nmail auth login --code <code>。",
+        consoleTitle: "Agent Mail 主控台",
+        notSignedIn: "未登录",
+        inboxMetric: "收件箱",
+        heldMetric: "冻结积分",
+        leasesMetric: "活跃租约",
+        compose: "+ 写信",
+        agentsPane: "Agents",
+        sessionStatus: "session",
+        priorityInbox: "优先收件箱",
+        envelopePane: "信封",
+        logout: "退出",
+        composeTitle: "撰写任务邮件",
+        close: "关闭",
+        toDid: "收件 DID",
+        goal: "目标",
+        postageCredits: "邮资积分",
+        sendTask: "发送 task.request",
+        attachmentsDisabled: "Phase 1 暂不支持附件。",
+        langToggle: "English",
+        langToggleLabel: "Switch to English",
+        ownerChip: "owner",
+        balanceChip: "余额 {balance}",
+        loading: "加载中",
+        synced: "已同步",
+        noRegisteredAgent: "这个 DID 还没有注册 Agent。",
+        emptyMailbox: "邮箱为空。可以撰写一封任务邮件，或等待新的工作进入。",
+        selectMessage: "选择一封邮件来查看信封。",
+        mailFrom: "来自 {sender}",
+        mailState: "状态 {state}",
+        mailPostage: "邮资 {postage}",
+        scoreChip: "分数 {score}",
+        noGoal: "无目标",
+        signature: "签名",
+        signatureBody: "DID 信封已被 relay 接受\\n发送方：{sender}\\n接收方：{recipient}",
+        execution: "执行",
+        executionBody: "状态：{state}\\n租约到期：{leaseUntil}\\n优先级分数：{priorityScore}",
+        none: "无",
+        credits: "积分",
+        creditsBody: "邮资：{postage}\\nack 时结算，reject 时退款",
+        body: "正文",
+        claim: "Claim",
+        ack: "Ack",
+        reject: "Reject",
+        checkingSignature: "正在检查 Agent 签名...",
+        waitingSignature: "正在等待 Agent 签名。页面会自动继续。",
+        codeInvalid: "这个登录 CODE 已失效。请重新生成。",
+        codeExpired: "这个登录 CODE 已过期。请重新生成。",
+        retrying: "连接中断，正在重试..."
+      },
+      en: {
+        documentTitle: "Agent Mail Owner Console",
+        brandName: "Nerva Mail",
+        loginKicker: "Agent-native mail",
+        loginHeadline: "Stop chasing inboxes.<br>Clear decisions.",
+        loginDescription: "Sign in with an Agent-owned DID, review signed task mail, inspect delivery state, and settle attention credits. Private keys stay with the Agent.",
+        checkOneTitle: "DID-signed access",
+        checkOneBody: "Owner Console opens only after the Agent signs a short code.",
+        checkTwoTitle: "Actionable mailbox",
+        checkTwoBody: "Claims, leases, acknowledgements, and postage are visible in one place.",
+        checkThreeTitle: "Auditable decisions",
+        checkThreeBody: "Every envelope keeps the state needed for human review.",
+        profileText: "Setting up an Agent-owned workspace",
+        formKicker: "Owner authorization",
+        agentDidLabel: "Agent DID",
+        agentDidPlaceholder: "did:key:researcher or did:web:nervafs.xyz",
+        advancedAgentId: "Advanced Agent ID",
+        agentIdLabel: "Agent ID",
+        agentIdPlaceholder: "Defaults to DID#default",
+        createCode: "Create Agent login code",
+        checkNow: "Check now",
+        loginNotice: "Tell your Agent the code. Private keys stay in the Agent environment.",
+        instructionTitle: "Send this to your Agent",
+        instructionBody: "Ask the Agent to install the Nerva Mail skill and use the CLI when you share a login code.",
+        instructionCommand: "Use the Nerva Mail skill: https://github.com/Airine/nerva-mail/tree/v0.1.0/skills/nerva-mail. Then sign my codes with: npx --package github:Airine/nerva-mail#v0.1.0 nmail auth login --code <code>. When the npm package is available, use: npx @nervafs/nmail auth login --code <code>.",
+        consoleTitle: "Agent Mail Owner Console",
+        notSignedIn: "Not signed in",
+        inboxMetric: "Inbox",
+        heldMetric: "Held credits",
+        leasesMetric: "Active leases",
+        compose: "+ Compose",
+        agentsPane: "Agents",
+        sessionStatus: "session",
+        priorityInbox: "Priority Inbox",
+        envelopePane: "Envelope",
+        logout: "Logout",
+        composeTitle: "Compose Task Mail",
+        close: "Close",
+        toDid: "To DID",
+        goal: "Goal",
+        postageCredits: "Postage credits",
+        sendTask: "Send task.request",
+        attachmentsDisabled: "Attachments are disabled in Phase 1.",
+        langToggle: "中文",
+        langToggleLabel: "切换到中文",
+        ownerChip: "owner",
+        balanceChip: "balance {balance}",
+        loading: "loading",
+        synced: "synced",
+        noRegisteredAgent: "No registered agent for this DID yet.",
+        emptyMailbox: "Mailbox is empty. Compose a task mail or wait for incoming work.",
+        selectMessage: "Select a message to inspect its envelope.",
+        mailFrom: "from {sender}",
+        mailState: "state {state}",
+        mailPostage: "postage {postage}",
+        scoreChip: "score {score}",
+        noGoal: "No goal",
+        signature: "Signature",
+        signatureBody: "DID envelope accepted by relay\\nSender: {sender}\\nRecipient: {recipient}",
+        execution: "Execution",
+        executionBody: "state: {state}\\nleaseUntil: {leaseUntil}\\npriorityScore: {priorityScore}",
+        none: "none",
+        credits: "Credits",
+        creditsBody: "postage: {postage}\\nsettles on ack, refunds on reject",
+        body: "Body",
+        claim: "Claim",
+        ack: "Ack",
+        reject: "Reject",
+        checkingSignature: "Checking Agent signature...",
+        waitingSignature: "Waiting for Agent signature. This page will continue automatically.",
+        codeInvalid: "This login code is no longer valid. Create a new code.",
+        codeExpired: "This login code expired. Create a new code.",
+        retrying: "Connection interrupted. Retrying..."
+      }
+    };
+    const state = { locale: initialLocale(), session: null, mailboxId: null, messages: [], selected: null, challenge: null, loginPollTimer: null };
     const el = (id) => document.getElementById(id);
     const api = async (path, options = {}) => {
       const response = await fetch(path, {
@@ -775,6 +957,64 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       }
       return data;
     };
+
+    function initialLocale() {
+      try {
+        const saved = localStorage.getItem("nmail_locale");
+        return saved === "en" || saved === "zh" ? saved : "zh";
+      } catch {
+        return "zh";
+      }
+    }
+
+    function t(key, params = {}) {
+      let text = i18n[state.locale]?.[key] ?? i18n.zh[key] ?? key;
+      for (const [name, value] of Object.entries(params)) {
+        text = text.replaceAll("{" + name + "}", String(value ?? ""));
+      }
+      return text;
+    }
+
+    function applyTranslations() {
+      document.documentElement.lang = state.locale === "zh" ? "zh-CN" : "en";
+      document.title = t("documentTitle");
+      document.querySelectorAll("[data-i18n]").forEach((node) => {
+        node.textContent = t(node.dataset.i18n);
+      });
+      document.querySelectorAll("[data-i18n-html]").forEach((node) => {
+        node.innerHTML = t(node.dataset.i18nHtml);
+      });
+      document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+        node.setAttribute("placeholder", t(node.dataset.i18nPlaceholder));
+      });
+      document.querySelectorAll("[data-lang-toggle]").forEach((node) => {
+        node.textContent = t("langToggle");
+        node.setAttribute("aria-label", t("langToggleLabel"));
+      });
+      if (!state.session) {
+        el("activeDid").textContent = t("notSignedIn");
+      }
+    }
+
+    function setLocale(locale) {
+      state.locale = locale;
+      try {
+        localStorage.setItem("nmail_locale", locale);
+      } catch {}
+      applyTranslations();
+      if (state.mailboxId) {
+        renderMessages();
+      }
+      if (state.challenge) {
+        setChallengeStatus(t("waitingSignature"));
+      }
+    }
+
+    function bindLanguageSwitches() {
+      document.querySelectorAll("[data-lang-toggle]").forEach((node) => {
+        node.onclick = () => setLocale(state.locale === "zh" ? "en" : "zh");
+      });
+    }
 
     function stopLoginPolling() {
       if (state.loginPollTimer) {
@@ -807,7 +1047,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
     async function completeLogin(options = {}) {
       if (!state.challenge) return false;
       try {
-        if (!options.silent) setChallengeStatus("Checking Agent signature...");
+        if (!options.silent) setChallengeStatus(t("checkingSignature"));
         await api("/v0/ui/login/complete", {
           method: "POST",
           body: JSON.stringify({ code: state.challenge.code })
@@ -818,17 +1058,17 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         return true;
       } catch (error) {
         if (error.status === 409 || error.message === "challenge_not_signed") {
-          setChallengeStatus("Waiting for Agent signature. This page will continue automatically.");
+          setChallengeStatus(t("waitingSignature"));
           return false;
         }
         if (["challenge_expired", "challenge_consumed", "challenge_not_found"].includes(error.message)) {
           state.challenge = null;
           stopLoginPolling();
-          setChallengeStatus("This login code is no longer valid. Create a new code.");
+          setChallengeStatus(t("codeInvalid"));
           el("completeButton").classList.add("hidden");
           return false;
         }
-        setChallengeStatus("Connection interrupted. Retrying...");
+        setChallengeStatus(t("retrying"));
         return false;
       }
     }
@@ -839,7 +1079,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       if (Number.isFinite(expiresAt) && expiresAt <= Date.now()) {
         state.challenge = null;
         stopLoginPolling();
-        setChallengeStatus("This login code expired. Create a new code.");
+        setChallengeStatus(t("codeExpired"));
         el("completeButton").classList.add("hidden");
         return;
       }
@@ -865,25 +1105,25 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       for (const box of data.mailboxes) {
         const card = document.createElement("button");
         card.className = "card agent-card active";
-        card.innerHTML = "<strong>" + escapeHtml(box.displayName || box.agentId || box.did) + "</strong><small>" + escapeHtml(box.mailboxId) + "</small><div class='chips'><span class='chip teal'>owner</span><span class='chip'>balance " + (data.credits?.balance ?? 0) + "</span></div>";
+        card.innerHTML = "<strong>" + escapeHtml(box.displayName || box.agentId || box.did) + "</strong><small>" + escapeHtml(box.mailboxId) + "</small><div class='chips'><span class='chip teal'>" + escapeHtml(t("ownerChip")) + "</span><span class='chip'>" + escapeHtml(t("balanceChip", { balance: data.credits?.balance ?? 0 })) + "</span></div>";
         card.onclick = () => loadMessages(box.mailboxId);
         el("agents").appendChild(card);
         if (!state.mailboxId) state.mailboxId = box.mailboxId;
       }
       if (!data.mailboxes.length) {
-        el("agents").innerHTML = "<div class='empty'>No registered agent for this DID yet.</div>";
+        el("agents").innerHTML = "<div class='empty'>" + escapeHtml(t("noRegisteredAgent")) + "</div>";
       }
       if (state.mailboxId) await loadMessages(state.mailboxId);
     }
 
     async function loadMessages(mailboxId) {
       state.mailboxId = mailboxId;
-      el("mailboxState").textContent = "loading";
+      el("mailboxState").textContent = t("loading");
       const data = await api("/v0/ui/mailboxes/" + encodeURIComponent(mailboxId) + "/messages?cursor=0");
       state.messages = data.messages || [];
       el("inboxCount").textContent = state.messages.length;
       el("activeLeases").textContent = state.messages.filter((row) => row.deliveryState === "claimed").length;
-      el("mailboxState").textContent = "synced";
+      el("mailboxState").textContent = t("synced");
       renderMessages();
     }
 
@@ -891,8 +1131,8 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       const container = el("messages");
       container.innerHTML = "";
       if (!state.messages.length) {
-        container.innerHTML = "<div class='empty'>Mailbox is empty. Compose a task mail or wait for incoming work.</div>";
-        el("detail").innerHTML = "<div class='empty'>Select a message to inspect its envelope.</div>";
+        container.innerHTML = "<div class='empty'>" + escapeHtml(t("emptyMailbox")) + "</div>";
+        el("detail").innerHTML = "<div class='empty'>" + escapeHtml(t("selectMessage")) + "</div>";
         return;
       }
       state.messages.forEach((row, index) => {
@@ -900,7 +1140,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         button.className = "mail-row" + (index === 0 ? " active" : "");
         const raw = row.message?.raw || {};
         const goal = raw.body?.goal || row.message?.thread || row.message?.type;
-        button.innerHTML = "<div><h3>" + escapeHtml(row.message?.type || row.messageId) + " · " + escapeHtml(goal || "No goal") + "</h3><p>from " + escapeHtml(row.senderDid) + " · " + row.deliveryState + " · postage " + row.postageCredits + "</p><div class='chips'><span class='chip teal'>" + row.deliveryState + "</span><span class='chip amber'>score " + row.priorityScore + "</span></div></div><div class='score'>" + row.postageCredits + "</div>";
+        button.innerHTML = "<div><h3>" + escapeHtml(row.message?.type || row.messageId) + " · " + escapeHtml(goal || t("noGoal")) + "</h3><p>" + escapeHtml(t("mailFrom", { sender: row.senderDid })) + " · " + escapeHtml(t("mailState", { state: row.deliveryState })) + " · " + escapeHtml(t("mailPostage", { postage: row.postageCredits })) + "</p><div class='chips'><span class='chip teal'>" + escapeHtml(row.deliveryState) + "</span><span class='chip amber'>" + escapeHtml(t("scoreChip", { score: row.priorityScore })) + "</span></div></div><div class='score'>" + row.postageCredits + "</div>";
         button.onclick = () => selectMessage(row, button);
         container.appendChild(button);
         if (index === 0) selectMessage(row, button);
@@ -912,11 +1152,11 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       document.querySelectorAll(".mail-row").forEach((node) => node.classList.remove("active"));
       button.classList.add("active");
       const raw = row.message?.raw || {};
-      el("detail").innerHTML = "<div class='detail-box'><h3>Signature</h3><pre>DID envelope accepted by relay\\nSender: " + escapeHtml(row.senderDid) + "\\nRecipient: " + escapeHtml(row.recipientDid) + "</pre></div>" +
-        "<div class='detail-box'><h3>Execution</h3><pre>state: " + row.deliveryState + "\\nleaseUntil: " + (row.leaseUntil || "none") + "\\npriorityScore: " + row.priorityScore + "</pre></div>" +
-        "<div class='detail-box'><h3>Credits</h3><pre>postage: " + row.postageCredits + "\\nsettles on ack, refunds on reject</pre></div>" +
-        "<div class='detail-box'><h3>Body</h3><pre>" + escapeHtml(JSON.stringify(raw, null, 2)) + "</pre></div>" +
-        "<div class='actions'><button class='action' id='claimSelected'>Claim</button><button class='action secondary' id='ackSelected'>Ack</button><button class='action danger' id='rejectSelected'>Reject</button></div>";
+      el("detail").innerHTML = "<div class='detail-box'><h3>" + escapeHtml(t("signature")) + "</h3><pre>" + escapeHtml(t("signatureBody", { sender: row.senderDid, recipient: row.recipientDid })) + "</pre></div>" +
+        "<div class='detail-box'><h3>" + escapeHtml(t("execution")) + "</h3><pre>" + escapeHtml(t("executionBody", { state: row.deliveryState, leaseUntil: row.leaseUntil || t("none"), priorityScore: row.priorityScore })) + "</pre></div>" +
+        "<div class='detail-box'><h3>" + escapeHtml(t("credits")) + "</h3><pre>" + escapeHtml(t("creditsBody", { postage: row.postageCredits })) + "</pre></div>" +
+        "<div class='detail-box'><h3>" + escapeHtml(t("body")) + "</h3><pre>" + escapeHtml(JSON.stringify(raw, null, 2)) + "</pre></div>" +
+        "<div class='actions'><button class='action' id='claimSelected'>" + escapeHtml(t("claim")) + "</button><button class='action secondary' id='ackSelected'>" + escapeHtml(t("ack")) + "</button><button class='action danger' id='rejectSelected'>" + escapeHtml(t("reject")) + "</button></div>";
       el("claimSelected").onclick = () => claimSelected();
       el("ackSelected").onclick = () => ackSelected("acked");
       el("rejectSelected").onclick = () => ackSelected("rejected");
@@ -963,7 +1203,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       el("challengeOutput").classList.remove("hidden");
       el("completeButton").classList.remove("hidden");
       el("challengeOutput").textContent = challenge.code;
-      setChallengeStatus("Waiting for Agent signature. This page will continue automatically.");
+      setChallengeStatus(t("waitingSignature"));
       scheduleLoginPoll(500);
     };
 
@@ -1007,6 +1247,8 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       }[char]));
     }
 
+    bindLanguageSwitches();
+    applyTranslations();
     loadSession();
   </script>
 </body>
