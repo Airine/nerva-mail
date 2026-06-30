@@ -21,6 +21,8 @@ await writeFile(keyFile, JSON.stringify(privateKeyJwk), "utf8");
 
 let verified = false;
 const bossDid = "did:key:boss";
+const bossAddress = "boss-agent@nervafs.xyz";
+const bossAddressDid = "did:web:mail.nervafs.xyz:agents:boss-agent";
 const inboundMessageId = "sha256:inbound";
 const acceptedMessages = [];
 let claimed = false;
@@ -183,6 +185,8 @@ try {
     hostedResult.productionReady !== true ||
     hostedResult.hostedByRelay !== true ||
     !hostedResult.did.startsWith("did:web:mail.nervafs.xyz:agents:hosted-") ||
+    !hostedResult.address.startsWith("hosted-") ||
+    !hostedResult.address.endsWith("@nervafs.xyz") ||
     hostedResult.didDocumentFile !== null ||
     hostedResult.publish.required !== false ||
     !hostedResult.didDocumentUrl.startsWith("https://mail.nervafs.xyz/agents/hosted-")
@@ -243,6 +247,29 @@ try {
     process.exit(generatedStatus.code ?? 1);
   }
 
+  const hostedAddressStatus = await run(process.execPath, [
+    "bin/nmail.mjs",
+    "auth",
+    "status",
+    "--did",
+    hostedResult.address
+  ], generateEnv);
+  if (hostedAddressStatus.code !== 0 || JSON.parse(hostedAddressStatus.stdout).did !== hostedResult.did) {
+    console.error(hostedAddressStatus.stderr || hostedAddressStatus.stdout);
+    process.exit(hostedAddressStatus.code || 1);
+  }
+
+  const resolvedAddress = await run(process.execPath, [
+    "bin/nmail.mjs",
+    "address",
+    "resolve",
+    bossAddress
+  ], env);
+  if (resolvedAddress.code !== 0 || JSON.parse(resolvedAddress.stdout).did !== bossAddressDid) {
+    console.error(resolvedAddress.stderr || resolvedAddress.stdout);
+    process.exit(resolvedAddress.code || 1);
+  }
+
   const configured = await run(process.execPath, [
     "bin/nmail.mjs",
     "auth",
@@ -294,7 +321,7 @@ try {
     "--relay",
     relay,
     "--to",
-    bossDid,
+    bossAddress,
     "--goal",
     "Hello from CLI"
   ], env);
@@ -303,7 +330,11 @@ try {
     process.exit(sendResult.code ?? 1);
   }
   const sent = JSON.parse(sendResult.stdout);
-  if (sent.status !== "accepted" || acceptedMessages.at(-1)?.body?.goal !== "Hello from CLI") {
+  if (
+    sent.status !== "accepted" ||
+    acceptedMessages.at(-1)?.to?.[0] !== bossAddress ||
+    acceptedMessages.at(-1)?.body?.goal !== "Hello from CLI"
+  ) {
     console.error(sendResult.stdout);
     process.exit(1);
   }

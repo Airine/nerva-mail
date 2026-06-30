@@ -30,6 +30,7 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
     await expect(response.json()).resolves.toMatchObject({
       protocol: "nmail/0.1",
       relay: "https://mail.nervafs.xyz",
+      addressDomains: ["nervafs.xyz"],
       features: expect.arrayContaining(["e2ee-reserved", "blob-uploads-disabled", "cursor-sync", "credits"]),
       maxAttachmentSize: 0
     });
@@ -74,9 +75,12 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
     expect(html).toContain("Create Agent login code");
     expect(html).toContain("Let Agents receive messages, take tasks, and report status.");
     expect(html).toContain("Waiting for Agent signature.");
-    expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.2 nmail auth generate --name");
-    expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.2 nmail auth login");
-    expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.2 nmail mail inbox");
+    expect(html).toContain("Agent 地址或 DID");
+    expect(html).toContain("agent-3ZMn2A@nervafs.xyz");
+    expect(html).toContain("收件地址或 DID");
+    expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.3 nmail auth generate --name");
+    expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.3 nmail auth login");
+    expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.3 nmail mail inbox");
     expect(html).not.toContain("--key-file");
     expect(html).not.toContain("nonce");
     expect(html).not.toContain("Claim、lease、ack 和 postage");
@@ -161,6 +165,76 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
           serviceEndpoint: "https://mail.nervafs.xyz"
         })
       ]
+    });
+  });
+
+  it("resolves Nerva addresses and routes messages to canonical DID mailboxes", async () => {
+    const hostedRecipient = await generateHostedDidWebAgent("agent-3ZMn2A");
+    await registerAgent(sender);
+    await registerAgent(hostedRecipient);
+    await adminTopup(sender.did, 50);
+
+    const resolveResponse = await handleRequest(
+      new Request("https://mail.nervafs.xyz/v0/address/resolve?address=agent-3ZMn2A%40nervafs.xyz"),
+      services.env,
+      services
+    );
+    expect(resolveResponse.status).toBe(200);
+    await expect(resolveResponse.json()).resolves.toEqual({
+      input: "agent-3ZMn2A@nervafs.xyz",
+      did: hostedRecipient.did,
+      address: "agent-3ZMn2A@nervafs.xyz",
+      kind: "nerva-address"
+    });
+
+    const unsupportedResponse = await handleRequest(
+      new Request("https://mail.nervafs.xyz/v0/address/resolve?address=agent%40example.com"),
+      services.env,
+      services
+    );
+    expect(unsupportedResponse.status).toBe(400);
+
+    const sendRequest = await createSignedRequest(sender, "https://mail.nervafs.xyz/v0/messages", {
+      method: "POST",
+      body: {
+        type: "task.request",
+        from: sender.did,
+        to: ["agent-3ZMn2A@nervafs.xyz"],
+        thread: "nthread:address",
+        body: { goal: "Confirm short address routing" },
+        postage: { creditAmount: 10 },
+        attachments: []
+      }
+    });
+    const sendResponse = await handleRequest(sendRequest, services.env, services);
+    expect(sendResponse.status).toBe(202);
+    const sent = await sendResponse.json() as { messageId: string; deliveries: Array<{ mailboxId: string }> };
+    expect(sent.deliveries).toEqual([expect.objectContaining({ mailboxId: hostedRecipient.did })]);
+
+    const readRequest = await createSignedRequest(
+      hostedRecipient,
+      `https://mail.nervafs.xyz/v0/messages/${encodeURIComponent(sent.messageId)}?mailboxId=${encodeURIComponent(hostedRecipient.did)}`,
+      { method: "GET" }
+    );
+    const readResponse = await handleRequest(readRequest, services.env, services);
+    expect(readResponse.status).toBe(200);
+    await expect(readResponse.json()).resolves.toMatchObject({
+      recipientDid: hostedRecipient.did,
+      message: {
+        raw: {
+          from: sender.did,
+          to: [hostedRecipient.did],
+          addressing: {
+            to: [
+              {
+                input: "agent-3ZMn2A@nervafs.xyz",
+                did: hostedRecipient.did,
+                address: "agent-3ZMn2A@nervafs.xyz"
+              }
+            ]
+          }
+        }
+      }
     });
   });
 

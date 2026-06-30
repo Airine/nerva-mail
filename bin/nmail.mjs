@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 
 const args = parseArgs(process.argv.slice(2));
-const VERSION = "0.1.2";
+const VERSION = "0.1.3";
 
 try {
   if (args.help || args.h || args._[0] === "help") {
@@ -21,6 +21,8 @@ try {
     await login();
   } else if (args._[0] === "agents" && args._[1] === "register") {
     await registerAgent();
+  } else if (args._[0] === "address" && args._[1] === "resolve") {
+    await addressResolve();
   } else if ((args._[0] === "mail" || args._[0] === "inbox") && (args._[1] === "inbox" || args._[1] === "sync" || args._[0] === "inbox")) {
     await mailInbox();
   } else if (args._[0] === "mail" && (args._[1] === "read" || args._[1] === "show")) {
@@ -105,6 +107,7 @@ async function generateAuth() {
   console.log(JSON.stringify({
     status: "generated",
     did,
+    address: didToNervaAddress(did),
     agentId,
     mailboxId,
     displayName,
@@ -266,7 +269,12 @@ async function mailReply() {
   const messageId = messageIdArg();
   const original = await signedJsonFetch(ctx, "GET", `/v0/messages/${encodeURIComponent(messageId)}?mailboxId=${encodeURIComponent(ctx.mailboxId)}`);
   const raw = original?.message?.raw && typeof original.message.raw === "object" ? original.message.raw : {};
-  const to = args.to && args.to !== "true" ? splitCsv(args.to) : [original.senderDid || original.message?.senderDid].filter(Boolean);
+  const to = args.to && args.to !== "true"
+    ? splitCsv(args.to).map((entry) => {
+      validateIdentityInput(entry);
+      return entry;
+    })
+    : [original.senderDid || original.message?.senderDid].filter(Boolean);
   if (!to.length) throw new Error("--to is required because original sender could not be inferred");
   const body = messageBodyFromArgs("result", { inReplyTo: messageId });
   const message = {
@@ -283,6 +291,11 @@ async function mailReply() {
     ? await signedJsonFetch(ctx, "POST", `/v0/messages/${encodeURIComponent(messageId)}/ack`, { mailboxId: ctx.mailboxId, state: "acked" })
     : null;
   outputJson({ status: "replied", originalMessageId: messageId, sent, ack });
+}
+
+async function addressResolve() {
+  const input = required(args.address ?? args.id ?? args._[2], "address");
+  outputJson(resolveIdentityAddress(input));
 }
 
 async function resolveMailContext() {
@@ -306,7 +319,10 @@ function messageIdArg() {
 function recipientsArg() {
   const value = args.to ?? args.recipient ?? args._[2];
   if (!value || value === "true") throw new Error("--to is required");
-  return splitCsv(value);
+  return splitCsv(value).map((entry) => {
+    validateIdentityInput(entry);
+    return entry;
+  });
 }
 
 function splitCsv(value) {
@@ -423,10 +439,64 @@ function nmailConfigPath() {
 function normalizeDid(value) {
   const input = String(value).trim();
   const fragmentIndex = input.indexOf("#");
-  if (fragmentIndex < 0) return { did: input };
-  const did = input.slice(0, fragmentIndex);
+  const identity = fragmentIndex >= 0 ? input.slice(0, fragmentIndex) : input;
+  const did = resolveIdentityForDidOption(identity);
+  if (fragmentIndex < 0) return { did };
   const fragment = input.slice(fragmentIndex + 1);
   return { did, keyId: fragment ? `${did}#${fragment}` : undefined };
+}
+
+function resolveIdentityForDidOption(input) {
+  if (String(input).includes("@")) return resolveIdentityAddress(input).did;
+  return String(input).trim();
+}
+
+function resolveIdentityAddress(input) {
+  const value = String(input || "").trim();
+  if (!value) throw new Error("address_required");
+  if (value.startsWith("did:")) {
+    return { input: value, did: value, address: didToNervaAddress(value), kind: "did" };
+  }
+  const address = parseNervaAddress(value);
+  if (!address) throw new Error(`unsupported_address: ${value}`);
+  return {
+    input: value,
+    did: `did:web:mail.nervafs.xyz:agents:${encodeURIComponent(address.local)}`,
+    address: `${address.local}@${address.domain}`,
+    kind: "nerva-address"
+  };
+}
+
+function didToNervaAddress(did) {
+  const prefix = "did:web:mail.nervafs.xyz:agents:";
+  if (!String(did).startsWith(prefix)) return null;
+  const tail = String(did).slice(prefix.length);
+  if (!tail || tail.includes(":")) return null;
+  return `${safeDecode(tail)}@nervafs.xyz`;
+}
+
+function validateIdentityInput(input) {
+  const value = String(input || "").trim();
+  if (value.startsWith("did:")) return;
+  resolveIdentityAddress(value);
+}
+
+function parseNervaAddress(value) {
+  const at = value.lastIndexOf("@");
+  if (at <= 0 || at === value.length - 1) return null;
+  const local = value.slice(0, at);
+  const domain = value.slice(at + 1).toLowerCase();
+  if (domain !== "nervafs.xyz") return null;
+  if (!/^[A-Za-z0-9._~-]+$/.test(local)) return null;
+  return { local, domain };
+}
+
+function safeDecode(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
 
 async function exists(path) {
@@ -481,18 +551,20 @@ Usage:
   nmail auth login --relay <url> --did <did> --code <code> --nonce <nonce>
   nmail auth login --relay <url> --did <did> --key-file <private-jwk.json> --code <code> --nonce <nonce>
   nmail agents register [--relay <url>] [--did <did>]
+  nmail address resolve <agent@nervafs.xyz>
   nmail mail inbox [--cursor <cursor>] [--raw]
   nmail mail read <message-id>
   nmail mail claim <message-id> [--lease-seconds 300]
   nmail mail ack <message-id>
   nmail mail reject <message-id>
-  nmail mail send --to <did>[,<did>] --goal <text> [--postage 0]
+  nmail mail send --to <address-or-did>[,<address-or-did>] --goal <text> [--postage 0]
   nmail mail reply <message-id> --text <text> [--ack]
 
 Run without installing:
-  npx --package github:Airine/nerva-mail#v0.1.2 nmail mail inbox
+  npx --package github:Airine/nerva-mail#v0.1.3 nmail mail inbox
 
 Mail commands sign relay requests with the Agent DID and output JSON for automation.
+Nerva addresses resolve as <agent>@nervafs.xyz -> did:web:mail.nervafs.xyz:agents:<agent>.
 The Agent private key stays on the machine running this CLI. generate defaults to
 Nerva-hosted production did:web and writes a private JWK under ~/.nerva-mail/keys.
 Pass --domain only when an organization wants to self-host its DID Document. did:key

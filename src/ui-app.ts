@@ -881,8 +881,8 @@ export function ownerConsoleHtml(relayOrigin: string): string {
           <div class="form-kicker" data-i18n="formKicker">登录授权</div>
           <button class="lang-toggle" data-lang-toggle type="button">English</button>
         </div>
-        <label><span data-i18n="agentDidLabel">Agent DID</span>
-          <input id="loginDid" placeholder="did:key:researcher or did:web:nervafs.xyz" data-i18n-placeholder="agentDidPlaceholder">
+        <label><span data-i18n="agentDidLabel">Agent 地址或 DID</span>
+          <input id="loginDid" placeholder="agent-3ZMn2A@nervafs.xyz" data-i18n-placeholder="agentDidPlaceholder">
         </label>
         <details class="advanced-login">
           <summary data-i18n="advancedAgentId">高级 Agent ID</summary>
@@ -898,7 +898,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         <div class="agent-instruction">
           <strong data-i18n="instructionTitle">发给你的 Agent</strong>
           <p data-i18n="instructionBody">让 Agent 安装 Nerva Mail skill，并在你分享登录 CODE 时调用 CLI 签名。</p>
-          <code data-i18n="instructionCommand">使用 Nerva Mail skill：https://github.com/Airine/nerva-mail/tree/v0.1.2/skills/nerva-mail。如果你还没有生产 DID，先用 Nerva 托管身份：npx --package github:Airine/nerva-mail#v0.1.2 nmail auth generate --name &lt;agent-name&gt;。签我的登录 CODE：npx --package github:Airine/nerva-mail#v0.1.2 nmail auth login --code &lt;code&gt;。查收任务：npx --package github:Airine/nerva-mail#v0.1.2 nmail mail inbox。</code>
+          <code data-i18n="instructionCommand">使用 Nerva Mail skill：https://github.com/Airine/nerva-mail/tree/v0.1.3/skills/nerva-mail。如果你还没有生产地址，先用 Nerva 托管身份：npx --package github:Airine/nerva-mail#v0.1.3 nmail auth generate --name &lt;agent-name&gt;。签我的登录 CODE：npx --package github:Airine/nerva-mail#v0.1.3 nmail auth login --code &lt;code&gt;。查收任务：npx --package github:Airine/nerva-mail#v0.1.3 nmail mail inbox。</code>
         </div>
       </div>
     </section>
@@ -938,7 +938,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
     <form id="composeForm" method="dialog">
       <div class="dialog-head"><h2 data-i18n="composeTitle">撰写任务邮件</h2><button id="composeCloseButton" class="action secondary" type="button" data-i18n="close">关闭</button></div>
       <div class="dialog-body">
-        <label><span data-i18n="toDid">收件 DID</span><input id="composeTo" required></label>
+        <label><span data-i18n="toDid">收件地址或 DID</span><input id="composeTo" required placeholder="agent-3ZMn2A@nervafs.xyz" data-i18n-placeholder="composeToPlaceholder"></label>
         <label><span data-i18n="goal">目标</span><textarea id="composeGoal" required></textarea></label>
         <label><span data-i18n="postageCredits">邮资积分</span><input id="composePostage" type="number" min="0" value="0"></label>
         <button class="primary" type="submit" value="default" data-i18n="sendTask">发送 task.request</button>
@@ -964,8 +964,8 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         checkThreeBody: "保留发件人、任务内容、积分和处理记录，出了问题可以追溯。",
         profileText: "正在登录 Agent 邮箱",
         formKicker: "登录授权",
-        agentDidLabel: "Agent DID",
-        agentDidPlaceholder: "did:key:researcher 或 did:web:nervafs.xyz",
+        agentDidLabel: "Agent 地址或 DID",
+        agentDidPlaceholder: "agent-3ZMn2A@nervafs.xyz 或 did:web:mail.nervafs.xyz:agents:agent-3ZMn2A",
         advancedAgentId: "高级 Agent ID",
         agentIdLabel: "Agent ID",
         agentIdPlaceholder: "默认 DID#default",
@@ -973,8 +973,8 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         checkNow: "立即检查",
         loginNotice: "把 CODE 告诉你的 Agent；它签名后，这个页面会自动打开邮箱。",
         instructionTitle: "发给你的 Agent",
-        instructionBody: "让 Agent 安装 Nerva Mail skill，并在你分享登录 CODE 时调用 CLI 签名。",
-        instructionCommand: "使用 Nerva Mail skill：https://github.com/Airine/nerva-mail/tree/v0.1.2/skills/nerva-mail。如果你还没有生产 DID，先用 Nerva 托管身份：npx --package github:Airine/nerva-mail#v0.1.2 nmail auth generate --name <agent-name>。签我的登录 CODE：npx --package github:Airine/nerva-mail#v0.1.2 nmail auth login --code <code>。查收任务：npx --package github:Airine/nerva-mail#v0.1.2 nmail mail inbox。",
+        instructionBody: "让 Agent 安装 Nerva Mail skill。你只需要告诉它短 CODE；地址、DID 和 CLI 参数由 Agent 自己处理。",
+        instructionCommand: "使用 Nerva Mail skill：https://github.com/Airine/nerva-mail/tree/v0.1.3/skills/nerva-mail。如果你还没有生产地址，先用 Nerva 托管身份：npx --package github:Airine/nerva-mail#v0.1.3 nmail auth generate --name <agent-name>。签我的登录 CODE：npx --package github:Airine/nerva-mail#v0.1.3 nmail auth login --code <code>。查收任务：npx --package github:Airine/nerva-mail#v0.1.3 nmail mail inbox。",
         consoleTitle: "Agent Mail 主控台",
         notSignedIn: "未登录",
         inboxMetric: "收件箱",
@@ -988,7 +988,8 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         logout: "退出",
         composeTitle: "撰写任务邮件",
         close: "关闭",
-        toDid: "收件 DID",
+        toDid: "收件地址或 DID",
+        composeToPlaceholder: "agent-3ZMn2A@nervafs.xyz",
         goal: "目标",
         postageCredits: "邮资积分",
         sendTask: "发送 task.request",
@@ -1060,8 +1061,8 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         checkThreeBody: "Sender, task body, credits, and handling history stay visible for later review.",
         profileText: "Signing into an Agent mailbox",
         formKicker: "Login authorization",
-        agentDidLabel: "Agent DID",
-        agentDidPlaceholder: "did:key:researcher or did:web:nervafs.xyz",
+        agentDidLabel: "Agent address or DID",
+        agentDidPlaceholder: "agent-3ZMn2A@nervafs.xyz or did:web:mail.nervafs.xyz:agents:agent-3ZMn2A",
         advancedAgentId: "Advanced Agent ID",
         agentIdLabel: "Agent ID",
         agentIdPlaceholder: "Defaults to DID#default",
@@ -1069,8 +1070,8 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         checkNow: "Check now",
         loginNotice: "Tell your Agent the CODE; after it signs, this page will open the mailbox automatically.",
         instructionTitle: "Send this to your Agent",
-        instructionBody: "Ask the Agent to install the Nerva Mail skill and use the CLI when you share a login code.",
-        instructionCommand: "Use the Nerva Mail skill: https://github.com/Airine/nerva-mail/tree/v0.1.2/skills/nerva-mail. If you do not have a production DID yet, first create a Nerva-hosted identity: npx --package github:Airine/nerva-mail#v0.1.2 nmail auth generate --name <agent-name>. Sign my code with: npx --package github:Airine/nerva-mail#v0.1.2 nmail auth login --code <code>. Check tasks with: npx --package github:Airine/nerva-mail#v0.1.2 nmail mail inbox.",
+        instructionBody: "Ask the Agent to install the Nerva Mail skill. You only need to share the short code; the Agent handles addresses, DIDs, and CLI flags.",
+        instructionCommand: "Use the Nerva Mail skill: https://github.com/Airine/nerva-mail/tree/v0.1.3/skills/nerva-mail. If you do not have a production address yet, first create a Nerva-hosted identity: npx --package github:Airine/nerva-mail#v0.1.3 nmail auth generate --name <agent-name>. Sign my code with: npx --package github:Airine/nerva-mail#v0.1.3 nmail auth login --code <code>. Check tasks with: npx --package github:Airine/nerva-mail#v0.1.3 nmail mail inbox.",
         consoleTitle: "Agent Mail Owner Console",
         notSignedIn: "Not signed in",
         inboxMetric: "Inbox",
@@ -1084,7 +1085,8 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         logout: "Logout",
         composeTitle: "Compose Task Mail",
         close: "Close",
-        toDid: "To DID",
+        toDid: "To address or DID",
+        composeToPlaceholder: "agent-3ZMn2A@nervafs.xyz",
         goal: "Goal",
         postageCredits: "Postage credits",
         sendTask: "Send task.request",
@@ -1303,7 +1305,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
 
     async function loadMailboxes() {
       const data = await api("/v0/ui/mailboxes");
-      el("activeDid").textContent = compactDid(state.session.did);
+      el("activeDid").textContent = displayIdentity(state.session.did);
       el("activeDid").title = state.session.did;
       el("heldCredits").textContent = data.credits?.held ?? 0;
       el("agents").innerHTML = "";
@@ -1311,7 +1313,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         const card = document.createElement("button");
         card.className = "card agent-card active";
         card.title = box.did || box.mailboxId || box.agentId || "";
-        card.innerHTML = "<strong>" + escapeHtml(displayAgentName(box)) + "</strong><small>" + escapeHtml(compactDid(box.mailboxId || box.did)) + "</small><div class='chips'><span class='chip teal'>" + escapeHtml(t("ownerChip")) + "</span><span class='chip'>" + escapeHtml(t("balanceChip", { balance: data.credits?.balance ?? 0 })) + "</span></div>";
+        card.innerHTML = "<strong>" + escapeHtml(displayAgentName(box)) + "</strong><small>" + escapeHtml(displayIdentity(box.mailboxId || box.did)) + "</small><div class='chips'><span class='chip teal'>" + escapeHtml(t("ownerChip")) + "</span><span class='chip'>" + escapeHtml(t("balanceChip", { balance: data.credits?.balance ?? 0 })) + "</span></div>";
         card.onclick = () => loadMessages(box.mailboxId);
         el("agents").appendChild(card);
         if (!state.mailboxId) state.mailboxId = box.mailboxId;
@@ -1351,7 +1353,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         const action = shortValue(body.requestedAction, 36);
         const summary = messageSummary(row);
         button.title = row.senderDid || "";
-        button.innerHTML = "<div><span class='mail-type'>" + escapeHtml(type) + "</span><h3>" + escapeHtml(summary) + "</h3><p>" + escapeHtml(t("mailFrom", { sender: compactDid(row.senderDid) })) + " · " + escapeHtml(t("mailState", { state: row.deliveryState })) + " · " + escapeHtml(t("mailPostage", { postage: row.postageCredits })) + "</p><div class='chips'><span class='chip teal'>" + escapeHtml(row.deliveryState) + "</span>" + (channel ? "<span class='chip'>" + escapeHtml(channel) + "</span>" : "") + (action ? "<span class='chip'>" + escapeHtml(action) + "</span>" : "") + "<span class='chip amber'>" + escapeHtml(t("scoreChip", { score: row.priorityScore })) + "</span></div></div><div class='score'>" + row.postageCredits + "</div>";
+        button.innerHTML = "<div><span class='mail-type'>" + escapeHtml(type) + "</span><h3>" + escapeHtml(summary) + "</h3><p>" + escapeHtml(t("mailFrom", { sender: displayIdentity(row.senderDid) })) + " · " + escapeHtml(t("mailState", { state: row.deliveryState })) + " · " + escapeHtml(t("mailPostage", { postage: row.postageCredits })) + "</p><div class='chips'><span class='chip teal'>" + escapeHtml(row.deliveryState) + "</span>" + (channel ? "<span class='chip'>" + escapeHtml(channel) + "</span>" : "") + (action ? "<span class='chip'>" + escapeHtml(action) + "</span>" : "") + "<span class='chip amber'>" + escapeHtml(t("scoreChip", { score: row.priorityScore })) + "</span></div></div><div class='score'>" + row.postageCredits + "</div>";
         button.onclick = () => selectMessage(row, button);
         container.appendChild(button);
         if (index === 0) selectMessage(row, button);
@@ -1400,8 +1402,8 @@ export function ownerConsoleHtml(relayOrigin: string): string {
     function renderOperationalPanels(row) {
       return "<div class='detail-box'><h3>" + escapeHtml(t("routeAndSignature")) + "</h3>" + renderKv([
           { label: t("relayStatus"), value: t("acceptedByRelay") },
-          { label: t("sender"), value: row.senderDid },
-          { label: t("recipient"), value: row.recipientDid }
+          { label: t("sender"), value: displayIdentity(row.senderDid) },
+          { label: t("recipient"), value: displayIdentity(row.recipientDid) }
         ]) + "</div>" +
         "<div class='detail-box'><h3>" + escapeHtml(t("execution")) + "</h3>" + renderKv([
           { label: t("deliveryState"), value: row.deliveryState },
@@ -1549,6 +1551,20 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       const explicit = box.displayName && box.displayName !== box.did && box.displayName !== box.agentId ? box.displayName : "";
       if (explicit) return explicit;
       return agentNameFromDid(box.did || box.mailboxId || box.agentId) || compactDid(box.did || box.agentId || box.mailboxId);
+    }
+
+    function displayIdentity(value) {
+      const address = nervaAddressForDid(value);
+      return address || compactDid(value);
+    }
+
+    function nervaAddressForDid(value) {
+      const text = String(value || "");
+      const prefix = "did:web:mail.nervafs.xyz:agents:";
+      if (!text.startsWith(prefix)) return "";
+      const tail = text.slice(prefix.length);
+      if (!tail || tail.includes(":")) return "";
+      return safeDecode(tail) + "@nervafs.xyz";
     }
 
     function agentNameFromDid(value) {

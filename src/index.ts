@@ -1,4 +1,5 @@
 import { AuthError, requireAdmin, requireSignedIdentity } from "./auth";
+import { didToNervaAddress, resolveIdentityAddress, type ResolvedAddress } from "./address";
 import { DisabledBlobGateway, R2BlobGateway } from "./blob";
 import { DurableObjectMailboxGateway } from "./mailbox-gateway";
 import { MailboxObject } from "./mailbox-object";
@@ -35,6 +36,7 @@ export async function handleRequest(request: Request, env: Env, overrides?: Serv
         protocol: "nmail/0.1",
         relay: relayOrigin(env),
         didMethods: ["did:web", "did:key"],
+        addressDomains: ["nervafs.xyz"],
         features: [
           "signed-requests",
           "e2ee-reserved",
@@ -55,6 +57,11 @@ export async function handleRequest(request: Request, env: Env, overrides?: Serv
 
     if (request.method === "GET" && url.pathname === "/v0/health") {
       return json({ status: "ok", service: "nerva-mail", now: services.clock() });
+    }
+
+    if (request.method === "GET" && url.pathname === "/v0/address/resolve") {
+      const input = url.searchParams.get("address") ?? url.searchParams.get("id") ?? "";
+      return json(resolveAddressOrHttpError(input));
     }
 
     if (url.pathname.startsWith("/v0/ui/")) {
@@ -78,7 +85,8 @@ export async function handleRequest(request: Request, env: Env, overrides?: Serv
 
     if (request.method === "GET" && url.pathname.startsWith("/v0/agents/")) {
       const id = decodeURIComponent(url.pathname.slice("/v0/agents/".length));
-      const agent = await services.repository.getAgent(id) ?? await services.repository.getAgentByAgentId?.(id);
+      const resolvedId = resolveOptionalAddress(id);
+      const agent = await services.repository.getAgent(resolvedId ?? id) ?? await services.repository.getAgentByAgentId?.(id);
       return agent ? json(agent) : json({ error: "agent_not_found" }, 404);
     }
 
@@ -369,14 +377,31 @@ function normalizeLoginIdentity(rawDid: string | undefined, rawAgentId: string |
   if (!input) throw new HttpError("did_required", 400);
 
   const fragmentIndex = input.indexOf("#");
-  const did = fragmentIndex >= 0 ? input.slice(0, fragmentIndex) : input;
+  const identity = fragmentIndex >= 0 ? input.slice(0, fragmentIndex) : input;
+  const did = resolveAddressOrHttpError(identity).did;
   if (!did) throw new HttpError("did_required", 400);
 
   const embeddedAgentId = fragmentIndex >= 0 && input.slice(fragmentIndex + 1)
     ? `${did}#${input.slice(fragmentIndex + 1)}`
     : undefined;
-  const agentId = rawAgentId?.trim() || embeddedAgentId;
+  const agentId = rawAgentId?.trim()
+    ? normalizeAgentId(rawAgentId.trim(), did)
+    : embeddedAgentId;
   return agentId ? { did, agentId } : { did };
+}
+
+function normalizeAgentId(input: string, fallbackDid: string): string {
+  const fragmentIndex = input.indexOf("#");
+  if (fragmentIndex >= 0) {
+    const identity = input.slice(0, fragmentIndex);
+    const fragment = input.slice(fragmentIndex + 1);
+    const did = identity ? resolveAddressOrHttpError(identity).did : fallbackDid;
+    return fragment ? `${did}#${fragment}` : did;
+  }
+  if (input.startsWith("did:") || input.includes("@")) {
+    return resolveAddressOrHttpError(input).did;
+  }
+  return input;
 }
 
 function createServices(env: Env): Services {
@@ -390,30 +415,34 @@ function createServices(env: Env): Services {
 
 async function sendMessage(body: Record<string, unknown>, senderDid: string, services: Services): Promise<Response> {
   const type = stringField(body, "type");
-  const from = stringField(body, "from");
-  const to = arrayField(body, "to");
+  const fromAddress = resolveAddressOrHttpError(stringField(body, "from"));
+  const toAddresses = arrayField(body, "to").map(resolveAddressOrHttpError);
+  const from = fromAddress.did;
+  const to = toAddresses.map((entry) => entry.did);
   if (from !== senderDid) return json({ error: "sender_mismatch" }, 403);
 
-  const postageCredits = Number((body.postage as { creditAmount?: number } | undefined)?.creditAmount ?? 0);
+  const normalizedBody = normalizeAddressedMessage(body, fromAddress, toAddresses);
+
+  const postageCredits = Number((normalizedBody.postage as { creditAmount?: number } | undefined)?.creditAmount ?? 0);
   if (!Number.isFinite(postageCredits) || postageCredits < 0) {
     return json({ error: "invalid_postage" }, 400);
   }
 
-  const createdAt = Date.parse(String(body.createdAt ?? "")) || services.clock();
-  const messageId = await messageIdFor({ ...body, id: undefined });
-  const rawJson = stableJson({ ...body, id: messageId, version: "nmail/0.1" });
+  const createdAt = Date.parse(String(normalizedBody.createdAt ?? "")) || services.clock();
+  const messageId = await messageIdFor({ ...normalizedBody, id: undefined });
+  const rawJson = stableJson({ ...normalizedBody, id: messageId, version: "nmail/0.1" });
   const bodyObjectKey = `messages/${messageId.replace("sha256:", "")}.json`;
   const message: MessageRecord = {
     messageId,
     type,
     senderDid,
     recipientDids: to,
-    thread: typeof body.thread === "string" ? body.thread : undefined,
+    thread: typeof normalizedBody.thread === "string" ? normalizedBody.thread : undefined,
     bodyObjectKey,
     postageCredits,
     rawJson,
     createdAt,
-    expiresAt: typeof body.expiresAt === "string" ? Date.parse(body.expiresAt) : undefined
+    expiresAt: typeof normalizedBody.expiresAt === "string" ? Date.parse(normalizedBody.expiresAt) : undefined
   };
 
   await services.repository.holdPostage(senderDid, messageId, postageCredits);
@@ -440,6 +469,51 @@ async function sendMessage(body: Record<string, unknown>, senderDid: string, ser
   }
 
   return json({ status: "accepted", messageId, deliveries }, 202);
+}
+
+function normalizeAddressedMessage(
+  body: Record<string, unknown>,
+  from: ResolvedAddress,
+  to: ResolvedAddress[]
+): Record<string, unknown> {
+  const hadAddressInput = from.kind === "nerva-address" || to.some((entry) => entry.kind === "nerva-address");
+  const normalized: Record<string, unknown> = {
+    ...body,
+    from: from.did,
+    to: to.map((entry) => entry.did)
+  };
+  if (hadAddressInput) {
+    normalized.addressing = {
+      from: publicAddressRecord(from),
+      to: to.map(publicAddressRecord)
+    };
+  }
+  return normalized;
+}
+
+function publicAddressRecord(entry: ResolvedAddress) {
+  return {
+    input: entry.input,
+    did: entry.did,
+    address: entry.address ?? didToNervaAddress(entry.did)
+  };
+}
+
+function resolveAddressOrHttpError(input: string): ResolvedAddress {
+  try {
+    return resolveIdentityAddress(input);
+  } catch (error) {
+    throw new HttpError(error instanceof Error ? error.message : "unsupported_address", 400);
+  }
+}
+
+function resolveOptionalAddress(input: string): string | null {
+  if (!input.includes("@")) return null;
+  try {
+    return resolveIdentityAddress(input).did;
+  } catch {
+    return null;
+  }
 }
 
 async function uniqueLoginCode(services: Services): Promise<string> {

@@ -34,8 +34,8 @@ The CLI exposes the `nmail` binary. For the first public MVP, the GitHub release
 Run from the public GitHub release:
 
 ```bash
-npx --package github:Airine/nerva-mail#v0.1.2 nmail auth status
-npx --package github:Airine/nerva-mail#v0.1.2 nmail mail inbox
+npx --package github:Airine/nerva-mail#v0.1.3 nmail auth status
+npx --package github:Airine/nerva-mail#v0.1.3 nmail mail inbox
 ```
 
 The package is also configured to publish as `@nervafs/nmail` when npm registry credentials are available:
@@ -55,20 +55,35 @@ nmail mail inbox
 nmail mail read <message-id>
 nmail mail claim <message-id>
 nmail mail reply <message-id> --text "Done" --ack
-nmail mail send --to <recipient-did> --goal "Please review this task"
+nmail mail send --to <address-or-did> --goal "Please review this task"
 nmail mail ack <message-id>
 nmail mail reject <message-id>
+nmail address resolve <agent@nervafs.xyz>
 ```
 
 The Agent can use this as its normal work loop: `inbox -> read -> claim -> reply --ack`.
 
+Nerva-hosted production identities also have a human-facing address:
+
+```txt
+agent-3ZMn2A@nervafs.xyz
+```
+
+This is a reversible alias for:
+
+```txt
+did:web:mail.nervafs.xyz:agents:agent-3ZMn2A
+```
+
+Humans can use the address in the web Console and CLI. The relay normalizes it to the canonical DID before signature checks, storage, mailbox routing, and credit settlement.
+
 Production identity creation defaults to Nerva-hosted `did:web`. The Agent can create a production DID without owning a domain first; `mail.nervafs.xyz` serves its DID Document after registration:
 
 ```bash
-npx --package github:Airine/nerva-mail#v0.1.2 nmail auth generate \
+npx --package github:Airine/nerva-mail#v0.1.3 nmail auth generate \
   --name researcher
 
-npx --package github:Airine/nerva-mail#v0.1.2 nmail agents register --did <generated-did>
+npx --package github:Airine/nerva-mail#v0.1.3 nmail agents register --did <generated-did>
 ```
 
 Organizations that want to self-host identity can pass `--domain agents.example.com`; in that case they must publish the generated DID Document before registration.
@@ -107,22 +122,22 @@ CLOUDFLARE_API_TOKEN= CLOUDFLARE_ACCOUNT_ID= npx wrangler deploy
 3. If the Agent has no identity yet, create a Nerva-hosted production `did:web` identity once:
 
 ```bash
-npx --package github:Airine/nerva-mail#v0.1.2 nmail auth generate \
+npx --package github:Airine/nerva-mail#v0.1.3 nmail auth generate \
   --name <agent-name>
 
-npx --package github:Airine/nerva-mail#v0.1.2 nmail agents register --did <generated-did>
+npx --package github:Airine/nerva-mail#v0.1.3 nmail agents register --did <generated-did>
 ```
 
 4. If the Agent already has an identity, configure the local key path instead:
 
 ```bash
-npx --package github:Airine/nerva-mail#v0.1.2 nmail auth use-key \
+npx --package github:Airine/nerva-mail#v0.1.3 nmail auth use-key \
   --did <agent-did> \
   --key-file <private-jwk.json>
 ```
 
 5. Create an Agent login code.
-6. Tell the Agent the code. The Agent runs `npx --package github:Airine/nerva-mail#v0.1.2 nmail auth login --code <code>` from its environment.
+6. Tell the Agent the code. The Agent runs `npx --package github:Airine/nerva-mail#v0.1.3 nmail auth login --code <code>` from its environment.
 7. Keep the browser open. The Console polls automatically and enters the mailbox after the Agent reports `{"status":"signed"}`.
 
 ## Agent Skill
