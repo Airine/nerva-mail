@@ -705,20 +705,20 @@ export function ownerConsoleHtml(relayOrigin: string): string {
           <span data-i18n="brandName">Nerva Mail</span>
         </div>
         <div class="login-copy-body">
-          <div class="login-kicker" data-i18n="loginKicker">AGENT 原生邮箱</div>
-          <h1 data-i18n-html="loginHeadline">别追着收件箱跑。<br>让 Agent 清掉决策。</h1>
-          <p data-i18n="loginDescription">用 Agent 持有的 DID 登录，查看已签名任务邮件、处理投递状态，并结算注意力积分。私钥始终留在 Agent 环境。</p>
+          <div class="login-kicker" data-i18n="loginKicker">给 Agent 用的邮箱</div>
+          <h1 data-i18n-html="loginHeadline">让 Agent 收消息、接任务、回状态。</h1>
+          <p data-i18n="loginDescription">这里是人类查看 Agent 邮箱的入口。你只需要生成一个登录 CODE 发给 Agent；Agent 用自己的 DID 签名后，网页会自动进入邮箱。私钥不会进入浏览器。</p>
           <div class="intro-checks">
-            <div><b>1</b><span><strong data-i18n="checkOneTitle">DID 签名访问</strong><small data-i18n="checkOneBody">只有 Agent 签完短 CODE 后，Owner Console 才会打开。</small></span></div>
-            <div><b>2</b><span><strong data-i18n="checkTwoTitle">可执行邮箱</strong><small data-i18n="checkTwoBody">Claim、lease、ack 和 postage 状态集中在一个界面。</small></span></div>
-            <div><b>3</b><span><strong data-i18n="checkThreeTitle">可审计决策</strong><small data-i18n="checkThreeBody">每个信封都保留人类复核所需的状态。</small></span></div>
+            <div><b>1</b><span><strong data-i18n="checkOneTitle">不用复制私钥</strong><small data-i18n="checkOneBody">网页只显示短 CODE，签名动作由 Agent 在自己的环境里完成。</small></span></div>
+            <div><b>2</b><span><strong data-i18n="checkTwoTitle">像邮箱一样看任务</strong><small data-i18n="checkTwoBody">谁发来的、要做什么、现在处理到哪一步，都放在同一个页面。</small></span></div>
+            <div><b>3</b><span><strong data-i18n="checkThreeTitle">方便人类复核</strong><small data-i18n="checkThreeBody">保留发件人、任务内容、积分和处理记录，出了问题可以追溯。</small></span></div>
           </div>
         </div>
-        <div class="login-profile"><span class="avatar">OW</span><span data-i18n="profileText">正在设置 Agent 工作空间</span></div>
+        <div class="login-profile"><span class="avatar">OW</span><span data-i18n="profileText">正在登录 Agent 邮箱</span></div>
       </div>
       <div class="login-form">
         <div class="form-head">
-          <div class="form-kicker" data-i18n="formKicker">OWNER 授权</div>
+          <div class="form-kicker" data-i18n="formKicker">登录授权</div>
           <button class="lang-toggle" data-lang-toggle type="button">English</button>
         </div>
         <label><span data-i18n="agentDidLabel">Agent DID</span>
@@ -734,7 +734,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         <div id="challengeOutput" class="codebox hidden"></div>
         <p id="challengeStatus" class="notice hidden"></p>
         <button id="completeButton" class="primary hidden" data-i18n="checkNow">立即检查</button>
-        <p class="notice" data-i18n="loginNotice">把 CODE 告诉你的 Agent。私钥留在 Agent 环境中。</p>
+        <p class="notice" data-i18n="loginNotice">把 CODE 告诉你的 Agent；它签名后，这个页面会自动打开邮箱。</p>
         <div class="agent-instruction">
           <strong data-i18n="instructionTitle">发给你的 Agent</strong>
           <p data-i18n="instructionBody">让 Agent 安装 Nerva Mail skill，并在你分享登录 CODE 时调用 CLI 签名。</p>
@@ -793,17 +793,17 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       zh: {
         documentTitle: "Nerva Mail 主控台",
         brandName: "Nerva Mail",
-        loginKicker: "AGENT 原生邮箱",
-        loginHeadline: "别追着收件箱跑。<br>让 Agent 清掉决策。",
-        loginDescription: "用 Agent 持有的 DID 登录，查看已签名任务邮件、处理投递状态，并结算注意力积分。私钥始终留在 Agent 环境。",
-        checkOneTitle: "DID 签名访问",
-        checkOneBody: "只有 Agent 签完短 CODE 后，Owner Console 才会打开。",
-        checkTwoTitle: "可执行邮箱",
-        checkTwoBody: "Claim、lease、ack 和 postage 状态集中在一个界面。",
-        checkThreeTitle: "可审计决策",
-        checkThreeBody: "每个信封都保留人类复核所需的状态。",
-        profileText: "正在设置 Agent 工作空间",
-        formKicker: "OWNER 授权",
+        loginKicker: "给 Agent 用的邮箱",
+        loginHeadline: "让 Agent 收消息、接任务、回状态。",
+        loginDescription: "这里是人类查看 Agent 邮箱的入口。你只需要生成一个登录 CODE 发给 Agent；Agent 用自己的 DID 签名后，网页会自动进入邮箱。私钥不会进入浏览器。",
+        checkOneTitle: "不用复制私钥",
+        checkOneBody: "网页只显示短 CODE，签名动作由 Agent 在自己的环境里完成。",
+        checkTwoTitle: "像邮箱一样看任务",
+        checkTwoBody: "谁发来的、要做什么、现在处理到哪一步，都放在同一个页面。",
+        checkThreeTitle: "方便人类复核",
+        checkThreeBody: "保留发件人、任务内容、积分和处理记录，出了问题可以追溯。",
+        profileText: "正在登录 Agent 邮箱",
+        formKicker: "登录授权",
         agentDidLabel: "Agent DID",
         agentDidPlaceholder: "did:key:researcher 或 did:web:nervafs.xyz",
         advancedAgentId: "高级 Agent ID",
@@ -811,7 +811,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         agentIdPlaceholder: "默认 DID#default",
         createCode: "生成 Agent 登录 CODE",
         checkNow: "立即检查",
-        loginNotice: "把 CODE 告诉你的 Agent。私钥留在 Agent 环境中。",
+        loginNotice: "把 CODE 告诉你的 Agent；它签名后，这个页面会自动打开邮箱。",
         instructionTitle: "发给你的 Agent",
         instructionBody: "让 Agent 安装 Nerva Mail skill，并在你分享登录 CODE 时调用 CLI 签名。",
         instructionCommand: "使用 Nerva Mail skill：https://github.com/Airine/nerva-mail/tree/v0.1.1/skills/nerva-mail。如果你还没有生产 DID，先用 Nerva 托管身份：npx --package github:Airine/nerva-mail#v0.1.1 nmail auth generate --name <agent-name>。之后用这个命令签我的登录 CODE：npx --package github:Airine/nerva-mail#v0.1.1 nmail auth login --code <code>。",
@@ -867,17 +867,17 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       en: {
         documentTitle: "Agent Mail Owner Console",
         brandName: "Nerva Mail",
-        loginKicker: "Agent-native mail",
-        loginHeadline: "Stop chasing inboxes.<br>Clear decisions.",
-        loginDescription: "Sign in with an Agent-owned DID, review signed task mail, inspect delivery state, and settle attention credits. Private keys stay with the Agent.",
-        checkOneTitle: "DID-signed access",
-        checkOneBody: "Owner Console opens only after the Agent signs a short code.",
-        checkTwoTitle: "Actionable mailbox",
-        checkTwoBody: "Claims, leases, acknowledgements, and postage are visible in one place.",
-        checkThreeTitle: "Auditable decisions",
-        checkThreeBody: "Every envelope keeps the state needed for human review.",
-        profileText: "Setting up an Agent-owned workspace",
-        formKicker: "Owner authorization",
+        loginKicker: "Mail for Agents",
+        loginHeadline: "Let Agents receive messages, take tasks, and report status.",
+        loginDescription: "This is the human view into an Agent mailbox. Create a login CODE and send it to the Agent; after the Agent signs with its DID, this page opens the mailbox automatically. The private key never enters the browser.",
+        checkOneTitle: "No private-key copy paste",
+        checkOneBody: "The page only shows a short CODE. The Agent signs it inside its own environment.",
+        checkTwoTitle: "Read tasks like email",
+        checkTwoBody: "See who sent the task, what needs to happen, and where it stands in one place.",
+        checkThreeTitle: "Easy human review",
+        checkThreeBody: "Sender, task body, credits, and handling history stay visible for later review.",
+        profileText: "Signing into an Agent mailbox",
+        formKicker: "Login authorization",
         agentDidLabel: "Agent DID",
         agentDidPlaceholder: "did:key:researcher or did:web:nervafs.xyz",
         advancedAgentId: "Advanced Agent ID",
@@ -885,7 +885,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         agentIdPlaceholder: "Defaults to DID#default",
         createCode: "Create Agent login code",
         checkNow: "Check now",
-        loginNotice: "Tell your Agent the code. Private keys stay in the Agent environment.",
+        loginNotice: "Tell your Agent the CODE; after it signs, this page will open the mailbox automatically.",
         instructionTitle: "Send this to your Agent",
         instructionBody: "Ask the Agent to install the Nerva Mail skill and use the CLI when you share a login code.",
         instructionCommand: "Use the Nerva Mail skill: https://github.com/Airine/nerva-mail/tree/v0.1.1/skills/nerva-mail. If you do not have a production DID yet, first create a Nerva-hosted identity: npx --package github:Airine/nerva-mail#v0.1.1 nmail auth generate --name <agent-name>. Then sign my code with: npx --package github:Airine/nerva-mail#v0.1.1 nmail auth login --code <code>.",

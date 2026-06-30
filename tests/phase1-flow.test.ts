@@ -62,18 +62,24 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
     expect(html).toContain('<html lang="zh-CN">');
     expect(html).toContain("Nerva Mail 主控台");
     expect(html).toContain('<span id="activeDid">未登录</span>');
+    expect(html).toContain("让 Agent 收消息、接任务、回状态。");
+    expect(html).toContain("不用复制私钥");
+    expect(html).toContain("像邮箱一样看任务");
+    expect(html).toContain("方便人类复核");
     expect(html).toContain("生成 Agent 登录 CODE");
-    expect(html).toContain("把 CODE 告诉你的 Agent");
+    expect(html).toContain("这个页面会自动打开邮箱");
     expect(html).toContain("正在等待 Agent 签名");
     expect(html).toContain("立即检查");
     expect(html).toContain("发给你的 Agent");
     expect(html).toContain("Create Agent login code");
-    expect(html).toContain("Tell your Agent the code.");
+    expect(html).toContain("Let Agents receive messages, take tasks, and report status.");
     expect(html).toContain("Waiting for Agent signature.");
     expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.1 nmail auth generate --name");
     expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.1 nmail auth login");
     expect(html).not.toContain("--key-file");
     expect(html).not.toContain("nonce");
+    expect(html).not.toContain("Claim、lease、ack 和 postage");
+    expect(html).not.toContain("attention credits");
     expect(html).toContain("高级 Agent ID");
     expect(html).toContain("默认 DID#default");
 
