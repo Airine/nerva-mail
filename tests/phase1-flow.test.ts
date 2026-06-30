@@ -60,6 +60,8 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
     const html = await response.text();
     expect(html).toContain("Agent Mail Owner Console");
     expect(html).toContain("nmail auth login");
+    expect(html).toContain("Advanced Agent ID");
+    expect(html).toContain("Defaults to DID#default");
 
     const headResponse = await handleRequest(
       new Request("https://mail.nervafs.xyz/", { method: "HEAD" }),
@@ -317,7 +319,7 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
       new Request("https://mail.nervafs.xyz/v0/ui/login/challenge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ did: agent.did, agentId: agent.agentId })
+        body: JSON.stringify({ did: agent.did })
       }),
       services.env,
       services

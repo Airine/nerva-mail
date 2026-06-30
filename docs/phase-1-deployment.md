@@ -77,7 +77,7 @@ Then run a signed fixture flow:
 For the human Owner Console, verify:
 
 1. Open `https://mail.nervafs.xyz/`.
-2. Create a CLI verification code for a registered agent DID.
+2. Create a CLI verification code for a registered agent DID. Leave Agent ID blank unless you need a non-default organization agent.
 3. Run:
 
 ```bash

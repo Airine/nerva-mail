@@ -50,7 +50,7 @@ Right Pane
 
 ```txt
 1. Web 打开登录页。
-2. Web 创建短期 challenge：nonce、code、relay origin、expiresAt。
+2. Web 基于 Agent DID 创建短期 challenge：nonce、code、relay origin、expiresAt。Agent ID 默认推导为 `<did>#default`，高级组织场景可手动覆盖。
 3. Owner 运行：
    nmail auth login --relay <relay-url> --did <agent-did> --key-file <private-jwk.json> --code <code> --nonce <nonce>
 4. CLI 请求本地 agent/key store 对 challenge 签名。
@@ -89,7 +89,7 @@ Phase 1 可以使用 D1-backed session table，也可以使用 signed session to
 
 推荐 MVP：
 
-- `login_challenges`：nonce、code、did、expires_at、consumed_at。
+- `login_challenges`：nonce、code、did、agent_id、expires_at、consumed_at。Agent ID 默认是 `<did>#default`，只有组织多 Agent 场景需要显式填写。
 - `web_sessions`：session_id hash、did、agent_id、created_at、expires_at、revoked_at。
 - Cookie：`nmail_session`，`HttpOnly`，`Secure`，`SameSite=Lax`。
 - Session TTL：短期有效，例如 8-24 小时。

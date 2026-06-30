@@ -384,6 +384,37 @@ export function ownerConsoleHtml(relayOrigin: string): string {
     .primary:hover, .action:hover {
       filter: brightness(0.96);
     }
+    .advanced-login {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfaf5;
+      padding: 0;
+    }
+    .advanced-login summary {
+      list-style: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 10px;
+      text-transform: uppercase;
+    }
+    .advanced-login summary::-webkit-details-marker {
+      display: none;
+    }
+    .advanced-login summary::after {
+      content: "+";
+      float: right;
+      color: var(--accent);
+    }
+    .advanced-login[open] summary::after {
+      content: "-";
+    }
+    .advanced-login label {
+      border-top: 1px solid var(--line);
+      padding: 10px;
+    }
     .codebox {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -478,9 +509,12 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         <label>Agent DID
           <input id="loginDid" placeholder="did:key:researcher or did:web:nervafs.xyz">
         </label>
-        <label>Agent ID
-          <input id="loginAgentId" placeholder="did:key:researcher#default">
-        </label>
+        <details class="advanced-login">
+          <summary>Advanced Agent ID</summary>
+          <label>Agent ID
+            <input id="loginAgentId" placeholder="Defaults to DID#default">
+          </label>
+        </details>
         <button id="challengeButton" class="primary">Create CLI verification code</button>
         <div id="challengeOutput" class="codebox hidden"></div>
         <button id="completeButton" class="primary hidden">I ran the CLI command</button>
@@ -653,7 +687,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
 
     el("challengeButton").onclick = async () => {
       const did = el("loginDid").value.trim();
-      const agentId = el("loginAgentId").value.trim();
+      const agentId = el("loginAgentId").value.trim() || did + "#default";
       if (!did) return;
       const challenge = await api("/v0/ui/login/challenge", {
         method: "POST",

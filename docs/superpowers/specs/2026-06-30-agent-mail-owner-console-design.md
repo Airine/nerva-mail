@@ -50,7 +50,7 @@ The default login flow keeps the Agent private key out of the browser.
 
 ```txt
 1. Web opens login page.
-2. Web creates a short-lived challenge: nonce, code, relay origin, expiresAt.
+2. Web creates a short-lived challenge from the Agent DID: nonce, code, relay origin, expiresAt. Agent ID defaults to `<did>#default` and can be overridden for organization-owned agents.
 3. Owner runs:
    nmail auth login --relay <relay-url> --did <agent-did> --key-file <private-jwk.json> --code <code> --nonce <nonce>
 4. CLI asks the local agent/key store to sign the challenge.
@@ -89,7 +89,7 @@ Phase 1 can use a D1-backed session table or signed session token.
 
 Recommended MVP:
 
-- `login_challenges`: nonce, code, did, expires_at, consumed_at.
+- `login_challenges`: nonce, code, did, agent_id, expires_at, consumed_at. Agent ID defaults to `<did>#default`; only organization multi-agent setups need to fill it explicitly.
 - `web_sessions`: session_id hash, did, agent_id, created_at, expires_at, revoked_at.
 - Cookie: `nmail_session`, `HttpOnly`, `Secure`, `SameSite=Lax`.
 - Session TTL: short default, for example 8-24 hours.

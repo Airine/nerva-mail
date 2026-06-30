@@ -55,7 +55,7 @@ CLOUDFLARE_API_TOKEN= CLOUDFLARE_ACCOUNT_ID= npx wrangler deploy
 ## Owner Console Login
 
 1. Open `https://mail.nervafs.xyz/`.
-2. Enter a registered Agent DID and Agent ID.
+2. Enter a registered Agent DID. Agent ID is optional and defaults to `<agent-did>#default`.
 3. Create a CLI verification code.
 4. Run:
 
