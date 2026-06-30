@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
@@ -75,6 +75,87 @@ try {
   const address = server.address();
   const relay = `http://127.0.0.1:${address.port}`;
   const env = { NMAIL_CONFIG: configFile };
+  const generateEnv = { NMAIL_CONFIG: join(tmp, "generate-config.json") };
+  const generatedDir = join(tmp, "generated");
+
+  const hostedGenerated = await run(process.execPath, [
+    "bin/nmail.mjs",
+    "auth",
+    "generate",
+    "--name",
+    "hosted",
+    "--out-dir",
+    generatedDir
+  ], generateEnv);
+  if (hostedGenerated.code !== 0) {
+    console.error(hostedGenerated.stderr || hostedGenerated.stdout);
+    process.exit(hostedGenerated.code ?? 1);
+  }
+  const hostedResult = JSON.parse(hostedGenerated.stdout);
+  if (
+    hostedResult.method !== "web" ||
+    hostedResult.productionReady !== true ||
+    hostedResult.hostedByRelay !== true ||
+    !hostedResult.did.startsWith("did:web:mail.nervafs.xyz:agents:hosted-") ||
+    hostedResult.didDocumentFile !== null ||
+    hostedResult.publish.required !== false ||
+    !hostedResult.didDocumentUrl.startsWith("https://mail.nervafs.xyz/agents/hosted-")
+  ) {
+    console.error(hostedGenerated.stdout);
+    process.exit(1);
+  }
+
+  const generated = await run(process.execPath, [
+    "bin/nmail.mjs",
+    "auth",
+    "generate",
+    "--domain",
+    "agents.example.com",
+    "--name",
+    "researcher",
+    "--out-dir",
+    generatedDir
+  ], generateEnv);
+  if (generated.code !== 0) {
+    console.error(generated.stderr || generated.stdout);
+    process.exit(generated.code ?? 1);
+  }
+  const generatedResult = JSON.parse(generated.stdout);
+  if (
+    generatedResult.method !== "web" ||
+    generatedResult.productionReady !== true ||
+    generatedResult.hostedByRelay !== false ||
+    !generatedResult.did.startsWith("did:web:agents.example.com:agents:researcher-") ||
+    !generatedResult.didDocumentUrl.startsWith("https://agents.example.com/agents/researcher-") ||
+    !generatedResult.didDocumentUrl.endsWith("/did.json") ||
+    generatedResult.publish.required !== true
+  ) {
+    console.error(generated.stdout);
+    process.exit(1);
+  }
+  const generatedPrivateKey = JSON.parse(await readFile(generatedResult.keyFile, "utf8"));
+  const generatedAgent = JSON.parse(await readFile(generatedResult.agentFile, "utf8"));
+  const generatedDidDocument = JSON.parse(await readFile(generatedResult.didDocumentFile, "utf8"));
+  if (
+    !generatedPrivateKey.d ||
+    generatedAgent.publicKeyJwk.d ||
+    generatedDidDocument.id !== generatedResult.did ||
+    generatedDidDocument.verificationMethod?.[0]?.id !== generatedResult.agentId
+  ) {
+    console.error(JSON.stringify({ generatedAgent, generatedDidDocument }, null, 2));
+    process.exit(1);
+  }
+  const generatedStatus = await run(process.execPath, [
+    "bin/nmail.mjs",
+    "auth",
+    "status",
+    "--did",
+    generatedResult.did
+  ], generateEnv);
+  if (generatedStatus.code !== 0 || !JSON.parse(generatedStatus.stdout).configured) {
+    console.error(generatedStatus.stderr || generatedStatus.stdout);
+    process.exit(generatedStatus.code ?? 1);
+  }
 
   const configured = await run(process.execPath, [
     "bin/nmail.mjs",

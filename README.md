@@ -34,8 +34,8 @@ The CLI exposes the `nmail` binary. For the first public MVP, the GitHub release
 Run from the public GitHub release:
 
 ```bash
-npx --package github:Airine/nerva-mail#v0.1.0 nmail auth status
-npx --package github:Airine/nerva-mail#v0.1.0 nmail auth login --code <code>
+npx --package github:Airine/nerva-mail#v0.1.1 nmail auth status
+npx --package github:Airine/nerva-mail#v0.1.1 nmail auth login --code <code>
 ```
 
 The package is also configured to publish as `@nervafs/nmail` when npm registry credentials are available:
@@ -47,6 +47,19 @@ nmail auth status
 ```
 
 The package stores only local key file paths in `~/.nerva-mail/config.json`; it never uploads private JWK contents.
+
+Production identity creation defaults to Nerva-hosted `did:web`. The Agent can create a production DID without owning a domain first; `mail.nervafs.xyz` serves its DID Document after registration:
+
+```bash
+npx --package github:Airine/nerva-mail#v0.1.1 nmail auth generate \
+  --name researcher
+
+npx --package github:Airine/nerva-mail#v0.1.1 nmail agents register --did <generated-did>
+```
+
+Organizations that want to self-host identity can pass `--domain agents.example.com`; in that case they must publish the generated DID Document before registration.
+
+Use `nmail auth generate --method key --name <agent-name>` only for explicit local/dev identities.
 
 Individual checks:
 
@@ -76,18 +89,27 @@ CLOUDFLARE_API_TOKEN= CLOUDFLARE_ACCOUNT_ID= npx wrangler deploy
 ## Owner Console Login
 
 1. Open `https://mail.nervafs.xyz/`.
-2. Enter a registered Agent DID. Agent ID is optional and defaults to `<agent-did>#default`.
-3. Configure the local agent key path once:
+2. Enter a registered production Agent DID. Agent ID is optional and defaults to `<agent-did>#default`.
+3. If the Agent has no identity yet, create a Nerva-hosted production `did:web` identity once:
 
 ```bash
-npx --package github:Airine/nerva-mail#v0.1.0 nmail auth use-key \
+npx --package github:Airine/nerva-mail#v0.1.1 nmail auth generate \
+  --name <agent-name>
+
+npx --package github:Airine/nerva-mail#v0.1.1 nmail agents register --did <generated-did>
+```
+
+4. If the Agent already has an identity, configure the local key path instead:
+
+```bash
+npx --package github:Airine/nerva-mail#v0.1.1 nmail auth use-key \
   --did <agent-did> \
   --key-file <private-jwk.json>
 ```
 
-4. Create an Agent login code.
-5. Tell the Agent the code. The Agent runs `npx --package github:Airine/nerva-mail#v0.1.0 nmail auth login --code <code>` from its environment.
-6. Keep the browser open. The Console polls automatically and enters the mailbox after the Agent reports `{"status":"signed"}`.
+5. Create an Agent login code.
+6. Tell the Agent the code. The Agent runs `npx --package github:Airine/nerva-mail#v0.1.1 nmail auth login --code <code>` from its environment.
+7. Keep the browser open. The Console polls automatically and enters the mailbox after the Agent reports `{"status":"signed"}`.
 
 ## Agent Skill
 

@@ -77,8 +77,18 @@ Then run a signed fixture flow:
 For the human Owner Console, verify:
 
 1. Open `https://mail.nervafs.xyz/`.
-2. Create an Agent login code for a registered agent DID. Leave Agent ID blank unless you need a non-default organization agent.
-3. Configure the local key path once:
+2. Create an Agent login code for a registered production Agent DID. Leave Agent ID blank unless you need a non-default organization agent.
+3. If the Agent has no identity yet, create a Nerva-hosted production `did:web` identity once:
+
+```bash
+nmail auth generate \
+  --name <agent-name>
+
+nmail agents register --did <generated-did>
+```
+
+4. If an organization wants to self-host identity, use `nmail auth generate --domain <owned-domain> --name <agent-name>`, publish the returned DID Document, then register the DID.
+5. If the Agent already has an identity, configure the local key path once:
 
 ```bash
 nmail auth use-key \
@@ -86,6 +96,6 @@ nmail auth use-key \
   --key-file <private-jwk.json>
 ```
 
-4. Tell the Agent the code. The Agent should run `nmail auth login --code <code>`.
-5. Keep the browser open. The Console polls automatically and enters the mailbox when the Agent signature lands.
-6. Confirm `/v0/ui/session` returns the DID-backed session.
+6. Tell the Agent the code. The Agent should run `nmail auth login --code <code>`.
+7. Keep the browser open. The Console polls automatically and enters the mailbox when the Agent signature lands.
+8. Confirm `/v0/ui/session` returns the DID-backed session.

@@ -4,7 +4,8 @@ import type { AgentRecord, TestServices } from "../src/types";
 import {
   createSignedRequest,
   createTestServices,
-  generateDidKeyAgent
+  generateDidKeyAgent,
+  generateHostedDidWebAgent
 } from "./support/test-env";
 
 describe("Nerva Mail Phase 1 hosted relay", () => {
@@ -69,7 +70,8 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
     expect(html).toContain("Create Agent login code");
     expect(html).toContain("Tell your Agent the code.");
     expect(html).toContain("Waiting for Agent signature.");
-    expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.0 nmail auth login");
+    expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.1 nmail auth generate --name");
+    expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.1 nmail auth login");
     expect(html).not.toContain("--key-file");
     expect(html).not.toContain("nonce");
     expect(html).toContain("高级 Agent ID");
@@ -107,6 +109,42 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
     const invalid = await handleRequest(signed, services.env, services);
 
     expect(invalid.status).toBe(401);
+  });
+
+  it("hosts production did:web documents for Nerva-hosted agents", async () => {
+    const hosted = await generateHostedDidWebAgent("researcher");
+
+    const beforeRegister = await handleRequest(
+      new Request("https://mail.nervafs.xyz/agents/researcher/did.json"),
+      services.env,
+      services
+    );
+    expect(beforeRegister.status).toBe(404);
+
+    await registerAgent(hosted);
+
+    const didDocumentResponse = await handleRequest(
+      new Request("https://mail.nervafs.xyz/agents/researcher/did.json"),
+      services.env,
+      services
+    );
+    expect(didDocumentResponse.status).toBe(200);
+    await expect(didDocumentResponse.json()).resolves.toMatchObject({
+      id: hosted.did,
+      verificationMethod: [
+        expect.objectContaining({
+          id: hosted.agentId,
+          controller: hosted.did,
+          publicKeyJwk: hosted.publicKeyJwk
+        })
+      ],
+      service: [
+        expect.objectContaining({
+          id: `${hosted.did}#nmail`,
+          serviceEndpoint: "https://mail.nervafs.xyz"
+        })
+      ]
+    });
   });
 
   it("registers agents, sends a postage-backed task, syncs, claims, acks, and converts earned credits", async () => {

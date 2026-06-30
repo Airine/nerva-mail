@@ -53,6 +53,25 @@ export async function generateDidKeyAgent(name: string): Promise<AgentRecord & {
   };
 }
 
+export async function generateHostedDidWebAgent(name: string): Promise<AgentRecord & { privateKey: CryptoKey }> {
+  const keyPair = await crypto.subtle.generateKey(
+    { name: "ECDSA", namedCurve: "P-256" },
+    true,
+    ["sign", "verify"]
+  );
+  const publicKeyJwk = await crypto.subtle.exportKey("jwk", keyPair.publicKey);
+  const did = `did:web:mail.nervafs.xyz:agents:${name}`;
+  return {
+    did,
+    agentId: `${did}#default`,
+    mailboxId: did,
+    displayName: name,
+    publicKeyJwk,
+    privateKey: keyPair.privateKey,
+    serviceEndpoint: "https://mail.nervafs.xyz"
+  };
+}
+
 export async function createSignedRequest(
   agent: AgentRecord & { privateKey: CryptoKey },
   url: string,

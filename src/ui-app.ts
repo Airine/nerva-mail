@@ -738,7 +738,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         <div class="agent-instruction">
           <strong data-i18n="instructionTitle">发给你的 Agent</strong>
           <p data-i18n="instructionBody">让 Agent 安装 Nerva Mail skill，并在你分享登录 CODE 时调用 CLI 签名。</p>
-          <code data-i18n="instructionCommand">使用 Nerva Mail skill：https://github.com/Airine/nerva-mail/tree/v0.1.0/skills/nerva-mail。之后用这个命令签我的登录 CODE：npx --package github:Airine/nerva-mail#v0.1.0 nmail auth login --code &lt;code&gt;。npm 包可用后，也可以用：npx @nervafs/nmail auth login --code &lt;code&gt;。</code>
+          <code data-i18n="instructionCommand">使用 Nerva Mail skill：https://github.com/Airine/nerva-mail/tree/v0.1.1/skills/nerva-mail。如果你还没有生产 DID，先用 Nerva 托管身份：npx --package github:Airine/nerva-mail#v0.1.1 nmail auth generate --name &lt;agent-name&gt;。之后用这个命令签我的登录 CODE：npx --package github:Airine/nerva-mail#v0.1.1 nmail auth login --code &lt;code&gt;。</code>
         </div>
       </div>
     </section>
@@ -814,7 +814,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         loginNotice: "把 CODE 告诉你的 Agent。私钥留在 Agent 环境中。",
         instructionTitle: "发给你的 Agent",
         instructionBody: "让 Agent 安装 Nerva Mail skill，并在你分享登录 CODE 时调用 CLI 签名。",
-        instructionCommand: "使用 Nerva Mail skill：https://github.com/Airine/nerva-mail/tree/v0.1.0/skills/nerva-mail。之后用这个命令签我的登录 CODE：npx --package github:Airine/nerva-mail#v0.1.0 nmail auth login --code <code>。npm 包可用后，也可以用：npx @nervafs/nmail auth login --code <code>。",
+        instructionCommand: "使用 Nerva Mail skill：https://github.com/Airine/nerva-mail/tree/v0.1.1/skills/nerva-mail。如果你还没有生产 DID，先用 Nerva 托管身份：npx --package github:Airine/nerva-mail#v0.1.1 nmail auth generate --name <agent-name>。之后用这个命令签我的登录 CODE：npx --package github:Airine/nerva-mail#v0.1.1 nmail auth login --code <code>。",
         consoleTitle: "Agent Mail 主控台",
         notSignedIn: "未登录",
         inboxMetric: "收件箱",
@@ -888,7 +888,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         loginNotice: "Tell your Agent the code. Private keys stay in the Agent environment.",
         instructionTitle: "Send this to your Agent",
         instructionBody: "Ask the Agent to install the Nerva Mail skill and use the CLI when you share a login code.",
-        instructionCommand: "Use the Nerva Mail skill: https://github.com/Airine/nerva-mail/tree/v0.1.0/skills/nerva-mail. Then sign my codes with: npx --package github:Airine/nerva-mail#v0.1.0 nmail auth login --code <code>. When the npm package is available, use: npx @nervafs/nmail auth login --code <code>.",
+        instructionCommand: "Use the Nerva Mail skill: https://github.com/Airine/nerva-mail/tree/v0.1.1/skills/nerva-mail. If you do not have a production DID yet, first create a Nerva-hosted identity: npx --package github:Airine/nerva-mail#v0.1.1 nmail auth generate --name <agent-name>. Then sign my code with: npx --package github:Airine/nerva-mail#v0.1.1 nmail auth login --code <code>.",
         consoleTitle: "Agent Mail Owner Console",
         notSignedIn: "Not signed in",
         inboxMetric: "Inbox",

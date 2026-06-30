@@ -47,6 +47,12 @@ export async function handleRequest(request: Request, env: Env, overrides?: Serv
       });
     }
 
+    if (request.method === "GET" && url.pathname.startsWith("/agents/") && url.pathname.endsWith("/did.json")) {
+      const did = hostedDidFromPath(url, env);
+      const agent = await services.repository.getAgent(did);
+      return agent ? json(didWebDocumentForAgent(agent, env)) : json({ error: "did_not_found" }, 404);
+    }
+
     if (request.method === "GET" && url.pathname === "/v0/health") {
       return json({ status: "ok", service: "nerva-mail", now: services.clock() });
     }
@@ -57,7 +63,11 @@ export async function handleRequest(request: Request, env: Env, overrides?: Serv
 
     if (request.method === "POST" && url.pathname === "/v0/agents/register") {
       const body = parseJson<{ agent?: AgentRecord }>(bodyText);
-      const auth = await requireSignedIdentity(request, env, services.repository, bodyText, services.clock(), body.agent);
+      const fixtureFallback = body.agent?.did?.startsWith("did:key:") && env.ALLOW_DID_KEY_TEST_FIXTURES === "true"
+        ? body.agent
+        : undefined;
+      const hostedFallback = body.agent && isHostedDidWeb(body.agent.did, env) ? body.agent : undefined;
+      const auth = await requireSignedIdentity(request, env, services.repository, bodyText, services.clock(), fixtureFallback ?? hostedFallback);
       const agentInput = body.agent;
       validateAgent(agentInput);
       if (auth.did !== agentInput.did) return json({ error: "did_mismatch" }, 403);
@@ -517,6 +527,46 @@ function requireSameOriginIfPresent(request: Request, env: Env): void {
   }
 }
 
+function hostedDidFromPath(url: URL, env: Env): string {
+  const pathParts = url.pathname.split("/").filter(Boolean);
+  if (pathParts.length < 3 || pathParts[0] !== "agents" || pathParts[pathParts.length - 1] !== "did.json") {
+    throw new HttpError("invalid_did_path", 404);
+  }
+  const didParts = [relayHost(env), ...pathParts.slice(0, -1)].map(encodeURIComponent);
+  return `did:web:${didParts.join(":")}`;
+}
+
+function isHostedDidWeb(did: string, env: Env): boolean {
+  if (!did.startsWith("did:web:")) return false;
+  const host = decodeURIComponent(did.replace("did:web:", "").split(":")[0] ?? "");
+  const pathParts = did.replace("did:web:", "").split(":").slice(1).map(decodeURIComponent);
+  return host === relayHost(env) && pathParts[0] === "agents" && pathParts.length >= 2;
+}
+
+function didWebDocumentForAgent(agent: AgentRecord, env: Env) {
+  return {
+    "@context": ["https://www.w3.org/ns/did/v1"],
+    id: agent.did,
+    verificationMethod: [
+      {
+        id: agent.agentId,
+        type: "JsonWebKey2020",
+        controller: agent.did,
+        publicKeyJwk: agent.publicKeyJwk
+      }
+    ],
+    authentication: [agent.agentId],
+    assertionMethod: [agent.agentId],
+    service: [
+      {
+        id: `${agent.did}#nmail`,
+        type: "NervaMailRelay",
+        serviceEndpoint: agent.serviceEndpoint ?? relayOrigin(env)
+      }
+    ]
+  };
+}
+
 function sanitizeAgent(agent: AgentRecord, now: number): AgentRecord {
   return {
     did: agent.did,
@@ -566,6 +616,10 @@ function priorityScore(postageCredits: number): number {
 
 function relayOrigin(env: Env): string {
   return env.RELAY_ORIGIN ?? "https://mail.nervafs.xyz";
+}
+
+function relayHost(env: Env): string {
+  return new URL(relayOrigin(env)).hostname;
 }
 
 function blobUploadsEnabled(env: Env): boolean {
