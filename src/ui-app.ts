@@ -517,7 +517,8 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         </details>
         <button id="challengeButton" class="primary">Create Agent login code</button>
         <div id="challengeOutput" class="codebox hidden"></div>
-        <button id="completeButton" class="primary hidden">Agent signed the code</button>
+        <p id="challengeStatus" class="notice hidden"></p>
+        <button id="completeButton" class="primary hidden">Check now</button>
         <p class="notice">Tell your Agent the code. Private keys stay in the Agent environment.</p>
       </div>
     </section>
@@ -568,7 +569,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
 
   <script>
     const relayOrigin = ${JSON.stringify(relayOrigin)};
-    const state = { session: null, mailboxId: null, messages: [], selected: null, challenge: null };
+    const state = { session: null, mailboxId: null, messages: [], selected: null, challenge: null, loginPollTimer: null };
     const el = (id) => document.getElementById(id);
     const api = async (path, options = {}) => {
       const response = await fetch(path, {
@@ -578,9 +579,26 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       });
       const text = await response.text();
       const data = text ? JSON.parse(text) : {};
-      if (!response.ok) throw new Error(data.error || response.statusText);
+      if (!response.ok) {
+        const error = new Error(data.error || response.statusText);
+        error.status = response.status;
+        error.data = data;
+        throw error;
+      }
       return data;
     };
+
+    function stopLoginPolling() {
+      if (state.loginPollTimer) {
+        clearTimeout(state.loginPollTimer);
+        state.loginPollTimer = null;
+      }
+    }
+
+    function setChallengeStatus(text) {
+      el("challengeStatus").textContent = text;
+      el("challengeStatus").classList.toggle("hidden", !text);
+    }
 
     function showLogin() {
       el("login").classList.remove("hidden");
@@ -588,8 +606,57 @@ export function ownerConsoleHtml(relayOrigin: string): string {
     }
 
     function showConsole() {
+      stopLoginPolling();
       el("login").classList.add("hidden");
       el("console").classList.remove("hidden");
+    }
+
+    function scheduleLoginPoll(delayMs = 1200) {
+      stopLoginPolling();
+      state.loginPollTimer = setTimeout(pollLoginChallenge, delayMs);
+    }
+
+    async function completeLogin(options = {}) {
+      if (!state.challenge) return false;
+      try {
+        if (!options.silent) setChallengeStatus("Checking Agent signature...");
+        await api("/v0/ui/login/complete", {
+          method: "POST",
+          body: JSON.stringify({ code: state.challenge.code })
+        });
+        state.challenge = null;
+        stopLoginPolling();
+        await loadSession();
+        return true;
+      } catch (error) {
+        if (error.status === 409 || error.message === "challenge_not_signed") {
+          setChallengeStatus("Waiting for Agent signature. This page will continue automatically.");
+          return false;
+        }
+        if (["challenge_expired", "challenge_consumed", "challenge_not_found"].includes(error.message)) {
+          state.challenge = null;
+          stopLoginPolling();
+          setChallengeStatus("This login code is no longer valid. Create a new code.");
+          el("completeButton").classList.add("hidden");
+          return false;
+        }
+        setChallengeStatus("Connection interrupted. Retrying...");
+        return false;
+      }
+    }
+
+    async function pollLoginChallenge() {
+      if (!state.challenge) return;
+      const expiresAt = Date.parse(state.challenge.expiresAt || "");
+      if (Number.isFinite(expiresAt) && expiresAt <= Date.now()) {
+        state.challenge = null;
+        stopLoginPolling();
+        setChallengeStatus("This login code expired. Create a new code.");
+        el("completeButton").classList.add("hidden");
+        return;
+      }
+      const completed = await completeLogin({ silent: true });
+      if (!completed && state.challenge) scheduleLoginPoll();
     }
 
     async function loadSession() {
@@ -703,24 +770,25 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         method: "POST",
         body: JSON.stringify({ did, agentId: agentId || undefined })
       });
+      stopLoginPolling();
       state.challenge = challenge;
       el("challengeOutput").classList.remove("hidden");
       el("completeButton").classList.remove("hidden");
       el("challengeOutput").textContent = challenge.code;
+      setChallengeStatus("Waiting for Agent signature. This page will continue automatically.");
+      scheduleLoginPoll(500);
     };
 
     el("completeButton").onclick = async () => {
-      if (!state.challenge) return;
-      await api("/v0/ui/login/complete", {
-        method: "POST",
-        body: JSON.stringify({ code: state.challenge.code })
-      });
-      await loadSession();
+      const completed = await completeLogin();
+      if (!completed && state.challenge) scheduleLoginPoll();
     };
 
     el("logoutButton").onclick = async () => {
       await api("/v0/ui/logout", { method: "POST", body: "{}" }).catch(() => {});
       state.session = null;
+      state.challenge = null;
+      stopLoginPolling();
       showLogin();
     };
 

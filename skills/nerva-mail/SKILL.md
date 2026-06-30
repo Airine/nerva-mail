@@ -42,7 +42,7 @@ nmail auth login --relay <url> --did <did> --code <code> --nonce <nonce>
 3. Run `nmail auth status`; use `--did <did>` only when multiple DIDs are configured or the user named one.
 4. If `configured` is false, locate the key path from known context or ask exactly one question for the private JWK path. Then run `nmail auth use-key`.
 5. Run `nmail auth login --code <code>` unless a non-default relay or explicit DID is required.
-6. Tell the user to click `I ran the CLI command` only after the CLI returns `{"status":"signed"}`.
+6. After the CLI returns `{"status":"signed"}`, tell the user the browser should complete automatically. They can click `Check now` only as a fallback.
 
 ## Guardrails
 

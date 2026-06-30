@@ -87,4 +87,5 @@ nmail auth use-key \
 ```
 
 4. Tell the Agent the code. The Agent should run `nmail auth login --code <code>`.
-5. Complete login in the browser and confirm `/v0/ui/session` returns the DID-backed session.
+5. Keep the browser open. The Console polls automatically and enters the mailbox when the Agent signature lands.
+6. Confirm `/v0/ui/session` returns the DID-backed session.

@@ -57,8 +57,8 @@ Right Pane
 5. Agent 运行：
    nmail auth login --code <code>
 6. CLI 自动解析 challenge nonce，请求本地 agent/key store 对 challenge 签名，并提交给 relay。
-7. Relay 验证 DID 签名并创建短期 web session。
-8. Browser 轮询或输入返回 code，拿到 session cookie/token。
+7. Relay 验证 DID 签名，并把 challenge 标记为已完成。
+8. Browser 自动轮询 challenge completion endpoint，创建短期 web session，并拿到 session cookie/token。
 ```
 
 好处：

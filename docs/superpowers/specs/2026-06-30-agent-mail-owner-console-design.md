@@ -57,8 +57,8 @@ The default login flow keeps the Agent private key out of the browser.
 5. Agent runs:
    nmail auth login --code <code>
 6. CLI resolves the challenge nonce, asks the local agent/key store to sign, and submits the signed challenge to relay.
-7. Relay verifies DID signature and creates a short-lived web session.
-8. Browser polls or enters returned code and receives a session cookie/token.
+7. Relay verifies DID signature and marks the challenge complete.
+8. Browser polls the challenge completion endpoint, creates a short-lived web session, and receives a session cookie/token.
 ```
 
 Benefits:

@@ -61,6 +61,8 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
     expect(html).toContain("Agent Mail Owner Console");
     expect(html).toContain("Create Agent login code");
     expect(html).toContain("Tell your Agent the code.");
+    expect(html).toContain("Waiting for Agent signature.");
+    expect(html).toContain("Check now");
     expect(html).not.toContain("nmail auth login");
     expect(html).toContain("Advanced Agent ID");
     expect(html).toContain("Defaults to DID#default");
@@ -342,6 +344,18 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
     const resolved = await resolvedResponse.json() as { nonce: string; did: string; agentId: string };
     expect(resolved.did).toBe(agent.did);
     expect(resolved.agentId).toBe(agent.agentId);
+
+    const earlyCompleteResponse = await handleRequest(
+      new Request("https://mail.nervafs.xyz/v0/ui/login/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: challenge.code })
+      }),
+      services.env,
+      services
+    );
+    expect(earlyCompleteResponse.status).toBe(409);
+    await expect(earlyCompleteResponse.json()).resolves.toMatchObject({ error: "challenge_not_signed" });
 
     const cliCompleteRequest = await createSignedRequest(agent, "https://mail.nervafs.xyz/v0/ui/login/cli-complete", {
       method: "POST",
