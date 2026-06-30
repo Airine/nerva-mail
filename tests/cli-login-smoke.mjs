@@ -14,7 +14,7 @@ const keyPair = await crypto.subtle.generateKey(
 const publicKeyJwk = await crypto.subtle.exportKey("jwk", keyPair.publicKey);
 const privateKeyJwk = await crypto.subtle.exportKey("jwk", keyPair.privateKey);
 
-const tmp = await mkdtemp(join(tmpdir(), "ltmail-cli-"));
+const tmp = await mkdtemp(join(tmpdir(), "nmail-cli-"));
 const keyFile = join(tmp, "agent.private.jwk");
 await writeFile(keyFile, JSON.stringify(privateKeyJwk), "utf8");
 
@@ -23,10 +23,10 @@ const server = createServer(async (request, response) => {
   const chunks = [];
   for await (const chunk of request) chunks.push(chunk);
   const bodyText = Buffer.concat(chunks).toString("utf8");
-  const timestamp = request.headers["x-lt-timestamp"];
-  const signature = request.headers["x-lt-signature"];
-  const receivedDid = request.headers["x-lt-did"];
-  const keyId = request.headers["x-lt-key-id"];
+  const timestamp = request.headers["x-nerva-timestamp"];
+  const signature = request.headers["x-nerva-signature"];
+  const receivedDid = request.headers["x-nerva-did"];
+  const keyId = request.headers["x-nerva-key-id"];
 
   if (
     request.method === "POST" &&
@@ -62,7 +62,7 @@ try {
   const address = server.address();
   const relay = `http://127.0.0.1:${address.port}`;
   const result = await run(process.execPath, [
-    "bin/ltmail.mjs",
+    "bin/nmail.mjs",
     "auth",
     "login",
     "--relay",

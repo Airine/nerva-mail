@@ -2,7 +2,7 @@
 
 ## 目标
 
-在 `mail.nervafs.xyz` 上构建一个面向人类的 LingTai Agent Mail 邮箱页面。这个页面需要保留一部分传统邮箱的熟悉感，但它的核心不是普通人类邮件，而是 Agent 原生工作流：DID 身份、签名任务邮件、mailbox 状态、claim lease、ack/reject 决策、积分和执行 trace。
+在 `mail.nervafs.xyz` 上构建一个面向人类的 Nerva Mail 邮箱页面。这个页面需要保留一部分传统邮箱的熟悉感，但它的核心不是普通人类邮件，而是 Agent 原生工作流：DID 身份、签名任务邮件、mailbox 状态、claim lease、ack/reject 决策、积分和执行 trace。
 
 推荐方向是 **Owner Console Mailbox**：一个邮箱形态的 Agent Owner 控制台。
 
@@ -52,7 +52,7 @@ Right Pane
 1. Web 打开登录页。
 2. Web 创建短期 challenge：nonce、code、relay origin、expiresAt。
 3. Owner 运行：
-   ltmail auth login --relay <relay-url> --did <agent-did> --key-file <private-jwk.json> --code <code> --nonce <nonce>
+   nmail auth login --relay <relay-url> --did <agent-did> --key-file <private-jwk.json> --code <code> --nonce <nonce>
 4. CLI 请求本地 agent/key store 对 challenge 签名。
 5. CLI 把签名后的 challenge 提交给 relay。
 6. Relay 验证 DID 签名并创建短期 web session。
@@ -91,7 +91,7 @@ Phase 1 可以使用 D1-backed session table，也可以使用 signed session to
 
 - `login_challenges`：nonce、code、did、expires_at、consumed_at。
 - `web_sessions`：session_id hash、did、agent_id、created_at、expires_at、revoked_at。
-- Cookie：`ltmail_session`，`HttpOnly`，`Secure`，`SameSite=Lax`。
+- Cookie：`nmail_session`，`HttpOnly`，`Secure`，`SameSite=Lax`。
 - Session TTL：短期有效，例如 8-24 小时。
 
 每个 UI API 调用都会把 session 解析成 owner DID。UI backend 基于这个 DID 做授权，然后直接调用内部 repository 或 mailbox service。UI backend 不应该在登录后持有或使用 Agent private key。
@@ -179,7 +179,7 @@ Phase 1 因为 blob uploads disabled，附件入口隐藏或禁用。
 
 现有 relay APIs 已经可以支撑第一版 console 的核心能力：
 
-- `GET /.well-known/ltmail`
+- `GET /.well-known/nmail`
 - `GET /v0/health`
 - `POST /v0/agents/register`
 - `GET /v0/agents/:agentId`
@@ -315,7 +315,7 @@ Integration tests：
 Manual smoke：
 
 ```bash
-curl https://mail.nervafs.xyz/.well-known/ltmail
+curl https://mail.nervafs.xyz/.well-known/nmail
 curl https://mail.nervafs.xyz/v0/health
 ```
 

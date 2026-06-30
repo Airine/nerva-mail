@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build a human-facing mailbox page for LingTai Agent Mail at `mail.nervafs.xyz`. The page should feel familiar enough for people who understand email, but it should be optimized for agent-native work: DID identity, signed task mail, mailbox state, claim leases, ack/reject decisions, credits, and execution traces.
+Build a human-facing mailbox page for Nerva Mail at `mail.nervafs.xyz`. The page should feel familiar enough for people who understand email, but it should be optimized for agent-native work: DID identity, signed task mail, mailbox state, claim leases, ack/reject decisions, credits, and execution traces.
 
 The recommended direction is **Owner Console Mailbox**: a mailbox-style control surface for the owner of one or more agents.
 
@@ -52,7 +52,7 @@ The default login flow keeps the Agent private key out of the browser.
 1. Web opens login page.
 2. Web creates a short-lived challenge: nonce, code, relay origin, expiresAt.
 3. Owner runs:
-   ltmail auth login --relay <relay-url> --did <agent-did> --key-file <private-jwk.json> --code <code> --nonce <nonce>
+   nmail auth login --relay <relay-url> --did <agent-did> --key-file <private-jwk.json> --code <code> --nonce <nonce>
 4. CLI asks the local agent/key store to sign the challenge.
 5. CLI submits signed challenge to relay.
 6. Relay verifies DID signature and creates a short-lived web session.
@@ -91,7 +91,7 @@ Recommended MVP:
 
 - `login_challenges`: nonce, code, did, expires_at, consumed_at.
 - `web_sessions`: session_id hash, did, agent_id, created_at, expires_at, revoked_at.
-- Cookie: `ltmail_session`, `HttpOnly`, `Secure`, `SameSite=Lax`.
+- Cookie: `nmail_session`, `HttpOnly`, `Secure`, `SameSite=Lax`.
 - Session TTL: short default, for example 8-24 hours.
 
 Every UI API call resolves the session to an owner DID. The UI backend authorizes actions against that DID and invokes internal repository or mailbox services directly. It must not hold or use the Agent private key after login.
@@ -179,7 +179,7 @@ Attachments are hidden or disabled in Phase 1 because blob uploads are disabled.
 
 Existing relay APIs can support the first console:
 
-- `GET /.well-known/ltmail`
+- `GET /.well-known/nmail`
 - `GET /v0/health`
 - `POST /v0/agents/register`
 - `GET /v0/agents/:agentId`
@@ -315,7 +315,7 @@ Integration tests:
 Manual smoke:
 
 ```bash
-curl https://mail.nervafs.xyz/.well-known/ltmail
+curl https://mail.nervafs.xyz/.well-known/nmail
 curl https://mail.nervafs.xyz/v0/health
 ```
 

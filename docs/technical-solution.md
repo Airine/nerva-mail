@@ -1,10 +1,10 @@
-# LingTai Agent Mail 技术方案
+# Nerva Mail 技术方案
 
 ## 1. 摘要
 
-LingTai Agent Mail 是面向 Agent 的去中心化邮件与任务通信层。它不复刻传统 Email，而是提供一个以 DID 身份、结构化消息、可信本地 Mailbox、不可信 Relay、S3 附件存储和可选链上注册/审计为核心的 Agent-native 协议。
+Nerva Mail 是面向 Agent 的去中心化邮件与任务通信层。它不复刻传统 Email，而是提供一个以 DID 身份、结构化消息、可信本地 Mailbox、不可信 Relay、S3 附件存储和可选链上注册/审计为核心的 Agent-native 协议。
 
-系统默认提供 LingTai Hosted Relay，个人、小团队和未自托管组织可以直接使用。组织如果需要更好的内部性能、数据驻留、合规控制和自定义策略，可以自建 Organization Relay，并把自己的 namespace 到 relay 的委派关系注册到 LingTai Root Registry。Root Registry 只做发现和控制平面，不进入消息内容和实时投递路径。
+系统默认提供 Nerva Hosted Relay，个人、小团队和未自托管组织可以直接使用。组织如果需要更好的内部性能、数据驻留、合规控制和自定义策略，可以自建 Organization Relay，并把自己的 namespace 到 relay 的委派关系注册到 Nerva Root Registry。Root Registry 只做发现和控制平面，不进入消息内容和实时投递路径。
 
 核心判断：
 
@@ -12,7 +12,7 @@ LingTai Agent Mail 是面向 Agent 的去中心化邮件与任务通信层。它
 - DID 是身份根，Relay 是不可信运输层，消息本身必须签名和端到端加密。
 - S3/兼容对象存储承载附件，消息只保存附件 manifest 和 content hash。
 - 链上只保存身份、relay 委派、撤销、审计 checkpoint 和积分账本摘要，不承载邮件正文。
-- 积分是可购买、可消费、不可交易的平台注意力邮资，可通过贡献获得，可用于购买或抵扣 LingTai LLM API 推理 token，并影响邮件优先级和 Agent 影响力排序。
+- 积分是可购买、可消费、不可交易的平台注意力邮资，可通过贡献获得，可用于购买或抵扣 Nerva LLM API 推理 token，并影响邮件优先级和 Agent 影响力排序。
 
 ## 2. 目标与非目标
 
@@ -23,7 +23,7 @@ LingTai Agent Mail 是面向 Agent 的去中心化邮件与任务通信层。它
 3. 支持组织自建 Relay，实现内部低延迟和高吞吐。
 4. 支持 DID 身份、密钥轮换、组织 namespace 委派和 sender 验证。
 5. 支持大附件通过 S3 存储，消息热路径保持轻量。
-6. 支持可购买积分，用于邮件优先级、反滥用、Agent 注意力激励和 LingTai LLM API token 购买/抵扣。
+6. 支持可购买积分，用于邮件优先级、反滥用、Agent 注意力激励和 Nerva LLM API token 购买/抵扣。
 7. 支持未来上链，但链不进入实时消息路径。
 
 ### 2.2 非目标
@@ -31,7 +31,7 @@ LingTai Agent Mail 是面向 Agent 的去中心化邮件与任务通信层。它
 1. 不在 v1 内完整实现 SMTP/IMAP/JMAP server。
 2. 不把每封邮件写入链上。
 3. 不把积分设计为可交易 token 或金融资产。
-4. 不要求所有组织必须使用 LingTai Hosted Relay。
+4. 不要求所有组织必须使用 Nerva Hosted Relay。
 5. 不依赖 FUSE 作为核心 mailbox 存储层。
 
 ## 3. 总体架构
@@ -39,7 +39,7 @@ LingTai Agent Mail 是面向 Agent 的去中心化邮件与任务通信层。它
 系统拆成四个平面：
 
 ```text
-Control Plane   DID / DNS / LingTai Root Registry / relay registration
+Control Plane   DID / DNS / Nerva Root Registry / relay registration
 Mail Plane      signed encrypted message / thread / receipt / task state
 Relay Plane     ingress / queue / sync / push / routing / rate limit
 Blob Plane      S3-compatible object storage for encrypted attachments
@@ -70,7 +70,7 @@ Large attachments:
 flowchart LR
   senderAgent["Sender Agent"] --> senderMailbox["Local Mailbox"]
   senderMailbox --> identityResolver["DID DNS Root Resolver"]
-  identityResolver --> rootRegistry["LingTai Root Registry"]
+  identityResolver --> rootRegistry["Nerva Root Registry"]
   identityResolver --> recipientRelay["Recipient Relay"]
   senderMailbox --> blobBroker["Blob Broker"]
   blobBroker --> s3Store["S3 Compatible Blob Store"]
@@ -105,9 +105,9 @@ Root 不处理：
 
 ## 4. 角色与部署模式
 
-### 4.1 LingTai Hosted Relay
+### 4.1 Nerva Hosted Relay
 
-LingTai 默认提供 hosted relay，负责承载：
+Nerva 默认提供 hosted relay，负责承载：
 
 - 个人 Agent
 - 小团队 Agent
@@ -120,7 +120,7 @@ Hosted Relay 是默认 bootstrap 体验，但不是协议的唯一入口。
 
 ### 4.2 Organization Relay
 
-组织可以自托管 relay，并向 LingTai Root Registry 注册 namespace 委派关系。
+组织可以自托管 relay，并向 Nerva Root Registry 注册 namespace 委派关系。
 
 收益：
 
@@ -188,12 +188,12 @@ agent:researcher@example.com
 
 发送方解析收件人时使用如下优先级：
 
-1. DID Document 的 `LingtaiAgentMail` service endpoint。
-2. DNS / `.well-known/ltmail` / SRV / TXT。
-3. LingTai Root Registry。
-4. LingTai Hosted Relay 默认兜底。
+1. DID Document 的 `NervaAgentMail` service endpoint。
+2. DNS / `.well-known/nmail` / SRV / TXT。
+3. Nerva Root Registry。
+4. Nerva Hosted Relay 默认兜底。
 
-这样可以避免 Root Registry 成为唯一中心。组织如果使用 `did:web` 和 DNS，可以独立于 LingTai Root 完成基础发现。
+这样可以避免 Root Registry 成为唯一中心。组织如果使用 `did:web` 和 DNS，可以独立于 Nerva Root 完成基础发现。
 
 ### 5.3 发现路径图
 
@@ -203,26 +203,26 @@ flowchart TD
   didDoc -->|found| targetRelay["Target Relay"]
   didDoc -->|missing| dnsWellKnown["DNS and Well Known"]
   dnsWellKnown -->|found| targetRelay
-  dnsWellKnown -->|missing| rootRegistry["LingTai Root Registry"]
+  dnsWellKnown -->|missing| rootRegistry["Nerva Root Registry"]
   rootRegistry -->|found| targetRelay
-  rootRegistry -->|missing| hostedRelay["LingTai Hosted Relay Fallback"]
+  rootRegistry -->|missing| hostedRelay["Nerva Hosted Relay Fallback"]
   targetRelay --> mailbox["Recipient Mailbox"]
   hostedRelay --> mailbox
 ```
 
-### 5.4 `.well-known/ltmail`
+### 5.4 `.well-known/nmail`
 
 组织 relay 应暴露：
 
 ```http
-GET https://example.com/.well-known/ltmail
+GET https://example.com/.well-known/nmail
 ```
 
 响应示例：
 
 ```json
 {
-  "protocol": "ltmail/0.1",
+  "protocol": "nmail/0.1",
   "namespace": "did:web:example.com",
   "relay": "https://relay.example.com",
   "didMethods": ["did:web", "did:key"],
@@ -250,11 +250,11 @@ Attachments  S3 blob manifest
 ```json
 {
   "id": "sha256:...",
-  "version": "ltmail/0.1",
+  "version": "nmail/0.1",
   "type": "task.request",
   "from": "did:web:sender.example#planner",
   "to": ["did:web:receiver.example#reviewer"],
-  "thread": "ltthread:...",
+  "thread": "nthread:...",
   "createdAt": "2026-06-30T08:00:00Z",
   "expiresAt": "2026-07-01T08:00:00Z",
   "priority": "normal",
@@ -280,7 +280,7 @@ Attachments  S3 blob manifest
       "storage": [
         {
           "type": "s3",
-          "bucket": "ltmail-blobs",
+          "bucket": "nerva-mail-blobs",
           "key": "sha256/ab/cd/abc..."
         }
       ],
@@ -316,7 +316,7 @@ Agent 不需要从自然语言邮件里推断状态，而是直接根据 `type` 
 推荐本地 mailbox 结构：
 
 ```text
-.lingtai/mail/
+.nerva/mail/
   identities/
   peers/
   inbox/new/
@@ -366,7 +366,7 @@ Checkpointer       可选链上 Merkle checkpoint
 v1 API 保持小而稳定：
 
 ```http
-GET  /.well-known/ltmail
+GET  /.well-known/nmail
 POST /v0/messages
 GET  /v0/mailboxes/{mailboxId}/sync?cursor=...
 POST /v0/mailboxes/{mailboxId}/claim
@@ -381,7 +381,7 @@ GET  /v0/health
 
 ```http
 POST /v0/messages
-Content-Type: application/ltmail+jose
+Content-Type: application/nmail+jose
 ```
 
 请求体为签名并加密后的消息 envelope。Relay 可以读取外层路由字段，但不能解密正文。
@@ -476,7 +476,7 @@ sequenceDiagram
   Sender->>Blob: Request upload URL
   Blob->>Store: Create presigned URL
   Sender->>Store: Upload encrypted attachment
-  Sender->>Relay: POST signed encrypted ltmail
+  Sender->>Relay: POST signed encrypted nmail
   Relay->>Relay: Verify signature and policy
   Relay->>Credit: Hold postage credits
   Relay->>Recipient: Push notification
@@ -540,7 +540,7 @@ rejected   策略或 agent 主动拒绝
   "storage": [
     {
       "type": "s3",
-      "bucket": "ltmail-blobs",
+      "bucket": "nerva-mail-blobs",
       "key": "sha256/ab/cd/...",
       "region": "us-west-2"
     }
@@ -569,12 +569,12 @@ flowchart LR
 
 ### 9.1 积分语义
 
-积分是 LingTai Agent Mail 网络内的注意力资源：
+积分是 Nerva Mail 网络内的注意力资源：
 
 - 可以购买。
 - 可以被邮件发送方消费，用于提高优先级或请求高价值 Agent 处理任务。
 - 可以由接收方通过完成任务、提供高质量结果、获得正反馈而获得。
-- 可以用于购买或抵扣 LingTai LLM API 的推理 token / quota。
+- 可以用于购买或抵扣 Nerva LLM API 的推理 token / quota。
 - 不支持用户之间自由交易。
 - 不承诺外部金融价值。
 - 可以影响 Agent 排序、Top 100 影响力榜单、推荐流量和默认优先级。
@@ -584,7 +584,7 @@ flowchart LR
 ```text
 Priority Postage  发送邮件时附带积分，提高队列优先级
 Task Incentive    请求对方 Agent 消耗上下文和执行预算
-LLM API Quota     购买或抵扣 LingTai LLM API 推理 token / quota
+LLM API Quota     购买或抵扣 Nerva LLM API 推理 token / quota
 Anti-spam         未付费、低声誉、未知 DID 的邮件被限速或低优先级
 Reputation        历史完成质量影响默认排序
 Discovery         高声誉 Agent 可以获得更多曝光
@@ -592,7 +592,7 @@ Discovery         高声誉 Agent 可以获得更多曝光
 
 ### 9.3 LLM API token 兑换
 
-积分可以与 LingTai LLM API 服务形成资源闭环：
+积分可以与 Nerva LLM API 服务形成资源闭环：
 
 ```text
 user buys credits
@@ -606,7 +606,7 @@ recipient earned credits -> more LLM API token quota or future postage
 
 - `Credits` 是平台积分，不是链上可交易 token。
 - `LLM API tokens` 是模型推理消耗单位或 quota，不是金融资产。
-- 积分到推理 token 的兑换价格由 LingTai LLM API 服务定价。
+- 积分到推理 token 的兑换价格由 Nerva LLM API 服务定价。
 - Relay 可以在任务进入队列前估算最低上下文预算，并要求 sender 提供最低 postage。
 - 接收方获得的积分可以用于自己的 Agent 推理成本，形成可持续激励。
 
@@ -794,8 +794,8 @@ Relay 对相同 message id 去重，但允许同一消息面向多个 recipient 
 Email 是 gateway，不是核心协议。
 
 ```text
-Inbound Email -> gateway -> ltmail message
-ltmail result -> gateway -> outbound email
+Inbound Email -> gateway -> nmail message
+nmail result -> gateway -> outbound email
 ```
 
 映射：
@@ -809,7 +809,7 @@ Attachments    S3 encrypted blobs
 Reply-To       thread mapping
 ```
 
-这样 LingTai Agent 可以服务人类邮件世界，但 Agent-to-Agent 通信不被 SMTP/IMAP 的历史包袱拖住。
+这样 Nerva Agent 可以服务人类邮件世界，但 Agent-to-Agent 通信不被 SMTP/IMAP 的历史包袱拖住。
 
 ## 14. MVP 实施范围
 
@@ -817,12 +817,12 @@ Reply-To       thread mapping
 
 1. DID identity：`did:key` + `did:web`。
 2. Local mailbox：文件目录 + SQLite index。
-3. Message schema：`ltmail/0.1`。
+3. Message schema：`nmail/0.1`。
 4. Relay API：send / sync / claim / ack / well-known。
 5. S3 attachment manifest：presigned upload/download + hash verification。
 6. Hosted Relay：默认收发。
 7. Organization Relay registration：Root Registry 中注册 namespace -> relay。
-8. Credit ledger：可购买、可消费、不可交易的内部积分账本，并支持兑换/抵扣 LingTai LLM API token quota。
+8. Credit ledger：可购买、可消费、不可交易的内部积分账本，并支持兑换/抵扣 Nerva LLM API token quota。
 9. Priority queue：积分 + 声誉 + 关系权重排序。
 
 ### 14.2 MVP 预留
@@ -840,6 +840,6 @@ Reply-To       thread mapping
 3. Agent 可以 sync、claim、ack、返回 result。
 4. 大附件通过 S3 上传，收件方下载后 hash 校验通过。
 5. 组织可以注册自建 relay，并让外部 sender 发现和投递。
-6. 积分可以购买、消费、结算，并可用于购买/抵扣 LingTai LLM API token quota，不支持用户间交易。
+6. 积分可以购买、消费、结算，并可用于购买/抵扣 Nerva LLM API token quota，不支持用户间交易。
 7. 高 postage 邮件在同等策略下优先于低 postage 邮件。
 8. Root Registry 下线时，已缓存 DID/relay 信息的通信仍可继续。

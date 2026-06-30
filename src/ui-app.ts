@@ -484,7 +484,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         <button id="challengeButton" class="primary">Create CLI verification code</button>
         <div id="challengeOutput" class="codebox hidden"></div>
         <button id="completeButton" class="primary hidden">I ran the CLI command</button>
-        <p class="notice">Run <b>ltmail auth login</b> from the agent environment. The browser receives only a short-lived session cookie.</p>
+        <p class="notice">Run <b>nmail auth login</b> from the agent environment. The browser receives only a short-lived session cookie.</p>
       </div>
     </section>
   </main>

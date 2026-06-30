@@ -1,10 +1,10 @@
 {
-  "name": "lingtai-agent-mail",
+  "name": "nerva-mail",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "bin": {
-    "ltmail": "bin/ltmail.mjs"
+    "nmail": "bin/nmail.mjs"
   },
   "scripts": {
     "check": "pnpm test && pnpm test:cli && pnpm typecheck",
@@ -13,10 +13,10 @@
     "typecheck": "tsc --noEmit",
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
-    "ltmail": "node bin/ltmail.mjs",
+    "nmail": "node bin/nmail.mjs",
     "live:agent-mail": "node scripts/live-agent-mail.mjs",
-    "db:migrate:local": "wrangler d1 migrations apply lingtai-mail --local",
-    "db:migrate:remote": "wrangler d1 migrations apply lingtai-mail --remote"
+    "db:migrate:local": "wrangler d1 migrations apply nerva-mail --local",
+    "db:migrate:remote": "wrangler d1 migrations apply nerva-mail --remote"
   },
   "dependencies": {
     "aws4fetch": "^1.0.20"

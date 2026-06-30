@@ -11,10 +11,10 @@ export async function requireSignedIdentity(
   now: number,
   fallbackAgent?: AgentRecord
 ): Promise<SignedIdentity> {
-  const did = request.headers.get("X-LT-DID");
-  const keyId = request.headers.get("X-LT-Key-Id");
-  const timestamp = request.headers.get("X-LT-Timestamp");
-  const signature = request.headers.get("X-LT-Signature");
+  const did = request.headers.get("X-Nerva-DID");
+  const keyId = request.headers.get("X-Nerva-Key-Id");
+  const timestamp = request.headers.get("X-Nerva-Timestamp");
+  const signature = request.headers.get("X-Nerva-Signature");
 
   if (!did || !keyId || !timestamp || !signature) {
     throw new AuthError("missing_signature_headers");

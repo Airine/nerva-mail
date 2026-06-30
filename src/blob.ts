@@ -23,7 +23,7 @@ export class R2BlobGateway implements BlobGateway {
       throw new Error("r2_binding_required");
     }
     await this.env.BLOBS.put(key, body, {
-      httpMetadata: { contentType: "application/ltmail+json" }
+      httpMetadata: { contentType: "application/nmail+json" }
     });
   }
 
@@ -38,7 +38,7 @@ export class R2BlobGateway implements BlobGateway {
 
   private async presign(method: "PUT" | "GET", key: string, expiresIn: number): Promise<BlobUrlResponse> {
     const accountId = required(this.env.R2_ACCOUNT_ID, "R2_ACCOUNT_ID");
-    const bucket = this.env.R2_BUCKET_NAME ?? "lingtai-mail-blobs";
+    const bucket = this.env.R2_BUCKET_NAME ?? "nerva-mail-blobs";
     const signer = new AwsClient({
       accessKeyId: required(this.env.R2_ACCESS_KEY_ID, "R2_ACCESS_KEY_ID"),
       secretAccessKey: required(this.env.R2_SECRET_ACCESS_KEY, "R2_SECRET_ACCESS_KEY"),

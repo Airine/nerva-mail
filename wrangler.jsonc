@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "lingtai-agent-mail",
+  "name": "nerva-mail",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-30",
   "workers_dev": false,
@@ -17,7 +17,7 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "lingtai-mail",
+      "database_name": "nerva-mail",
       "database_id": "de5f5968-c16d-4aee-ae9f-4a6375ae6a79",
       "migrations_dir": "migrations"
     }

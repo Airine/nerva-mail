@@ -9,7 +9,7 @@ import { base64UrlEncode, messageIdFor, sha256Hex, stableJson } from "./utils/cr
 
 export { MailboxObject };
 
-const UI_SESSION_COOKIE = "ltmail_session";
+const UI_SESSION_COOKIE = "nmail_session";
 const LOGIN_CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const UI_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
@@ -29,10 +29,10 @@ export async function handleRequest(request: Request, env: Env, overrides?: Serv
       return html(request.method === "HEAD" ? null : ownerConsoleHtml(relayOrigin(env)));
     }
 
-    if (request.method === "GET" && url.pathname === "/.well-known/ltmail") {
+    if (request.method === "GET" && url.pathname === "/.well-known/nmail") {
       const blobsEnabled = blobUploadsEnabled(env);
       return json({
-        protocol: "ltmail/0.1",
+        protocol: "nmail/0.1",
         relay: relayOrigin(env),
         didMethods: ["did:web", "did:key"],
         features: [
@@ -48,7 +48,7 @@ export async function handleRequest(request: Request, env: Env, overrides?: Serv
     }
 
     if (request.method === "GET" && url.pathname === "/v0/health") {
-      return json({ status: "ok", service: "lingtai-agent-mail", now: services.clock() });
+      return json({ status: "ok", service: "nerva-mail", now: services.clock() });
     }
 
     if (url.pathname.startsWith("/v0/ui/")) {
@@ -190,7 +190,7 @@ async function handleUiRoute(request: Request, env: Env, services: Services, url
       agentId: challenge.agentId,
       relay: relayOrigin(env),
       expiresAt: new Date(challenge.expiresAt).toISOString(),
-      command: `ltmail auth login --relay ${relayOrigin(env)} --did ${challenge.did} --key-file ./agent.private.jwk --code ${challenge.code} --nonce ${challenge.nonce}`
+      command: `nmail auth login --relay ${relayOrigin(env)} --did ${challenge.did} --key-file ./agent.private.jwk --code ${challenge.code} --nonce ${challenge.nonce}`
     }, 201);
   }
 
@@ -342,7 +342,7 @@ async function sendMessage(body: Record<string, unknown>, senderDid: string, ser
 
   const createdAt = Date.parse(String(body.createdAt ?? "")) || services.clock();
   const messageId = await messageIdFor({ ...body, id: undefined });
-  const rawJson = stableJson({ ...body, id: messageId, version: "ltmail/0.1" });
+  const rawJson = stableJson({ ...body, id: messageId, version: "nmail/0.1" });
   const bodyObjectKey = `messages/${messageId.replace("sha256:", "")}.json`;
   const message: MessageRecord = {
     messageId,

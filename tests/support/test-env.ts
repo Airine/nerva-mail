@@ -26,7 +26,7 @@ export function createTestServices(): TestServices {
     R2_ACCOUNT_ID: "test-account",
     R2_ACCESS_KEY_ID: "test-access-key",
     R2_SECRET_ACCESS_KEY: "test-secret",
-    R2_BUCKET_NAME: "lingtai-mail-blobs",
+    R2_BUCKET_NAME: "nerva-mail-blobs",
     RELAY_ORIGIN: "https://mail.nervafs.xyz",
     ALLOW_DID_KEY_TEST_FIXTURES: "true"
   };
@@ -70,10 +70,10 @@ export async function createSignedRequest(
     method: options.method,
     headers: {
       "Content-Type": "application/json",
-      "X-LT-DID": agent.did,
-      "X-LT-Key-Id": `${agent.did}#default`,
-      "X-LT-Timestamp": "1800000000000",
-      "X-LT-Signature": base64UrlEncode(new Uint8Array(signature))
+      "X-Nerva-DID": agent.did,
+      "X-Nerva-Key-Id": `${agent.did}#default`,
+      "X-Nerva-Timestamp": "1800000000000",
+      "X-Nerva-Signature": base64UrlEncode(new Uint8Array(signature))
     }
   };
   if (bodyText) {
@@ -274,7 +274,7 @@ class MemoryBlobGateway {
     return {
       method: "PUT",
       key,
-      url: `https://test-account.r2.cloudflarestorage.com/lingtai-mail-blobs/${key}`,
+      url: `https://test-account.r2.cloudflarestorage.com/nerva-mail-blobs/${key}`,
       expiresIn: 3600
     };
   }
@@ -283,7 +283,7 @@ class MemoryBlobGateway {
     return {
       method: "GET",
       key,
-      url: `https://test-account.r2.cloudflarestorage.com/lingtai-mail-blobs/${key}`,
+      url: `https://test-account.r2.cloudflarestorage.com/nerva-mail-blobs/${key}`,
       expiresIn: 3600
     };
   }

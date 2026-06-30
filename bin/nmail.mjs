@@ -24,16 +24,16 @@ try {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-LT-DID": did,
-      "X-LT-Key-Id": keyId,
-      "X-LT-Timestamp": timestamp,
-      "X-LT-Signature": signature
+      "X-Nerva-DID": did,
+      "X-Nerva-Key-Id": keyId,
+      "X-Nerva-Timestamp": timestamp,
+      "X-Nerva-Signature": signature
     },
     body: bodyText
   });
   const text = await response.text();
   if (!response.ok) {
-    console.error(text || `ltmail auth login failed with ${response.status}`);
+    console.error(text || `nmail auth login failed with ${response.status}`);
     process.exit(1);
   }
   console.log(text || JSON.stringify({ status: "signed" }));
@@ -69,7 +69,7 @@ function required(value, name) {
 
 function usage() {
   console.error(`Usage:
-  ltmail auth login --relay <url> --did <did> --key-file <private-jwk.json> --code <code> --nonce <nonce>
+  nmail auth login --relay <url> --did <did> --key-file <private-jwk.json> --code <code> --nonce <nonce>
 
 The command signs the browser login challenge and submits it to /v0/ui/login/cli-complete.
 The Agent private key stays on the machine running this CLI.`);

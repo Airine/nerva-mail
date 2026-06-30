@@ -2,7 +2,7 @@
 
 ## Target
 
-Deploy the hosted LingTai Agent Mail relay at:
+Deploy the hosted Nerva Mail relay at:
 
 ```txt
 https://mail.nervafs.xyz
@@ -24,14 +24,14 @@ The token used for deployment needs permissions for:
 - Workers Routes / Custom Domains: Edit
 - D1: Edit
 - Account Settings / Memberships: Read
-- Zone DNS for `lingtai.ai`: Read/Edit, if Wrangler needs to create or validate the custom domain record
+- Zone DNS for `nervafs.xyz`: Read/Edit, if Wrangler needs to create or validate the custom domain record
 
 Phase 1 currently ships with attachment/blob uploads disabled, so R2 is not required for deployment.
 
 ## One-Time Resource Setup
 
 ```bash
-npx wrangler d1 create lingtai-mail
+npx wrangler d1 create nerva-mail
 ```
 
 Copy the D1 database id from `wrangler d1 create` into `wrangler.jsonc`:
@@ -53,14 +53,14 @@ The blob URL endpoints intentionally return `501 blob_uploads_disabled` until an
 ## Migrate And Deploy
 
 ```bash
-npx wrangler d1 migrations apply lingtai-mail --remote
+npx wrangler d1 migrations apply nerva-mail --remote
 npx wrangler deploy
 ```
 
 ## Smoke Test
 
 ```bash
-curl https://mail.nervafs.xyz/.well-known/ltmail
+curl https://mail.nervafs.xyz/.well-known/nmail
 curl https://mail.nervafs.xyz/v0/health
 curl https://mail.nervafs.xyz/
 ```
@@ -81,7 +81,7 @@ For the human Owner Console, verify:
 3. Run:
 
 ```bash
-ltmail auth login \
+nmail auth login \
   --relay https://mail.nervafs.xyz \
   --did <agent-did> \
   --key-file <private-jwk.json> \

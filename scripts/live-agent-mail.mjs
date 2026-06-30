@@ -27,7 +27,7 @@ try {
 async function setup() {
   const relay = required(args.relay, "--relay").replace(/\/+$/, "");
   const runId = args["run-id"] || `two-codex-${Date.now().toString(36)}`;
-  const runDir = args["run-dir"] || `/tmp/ltmail-${runId}`;
+  const runDir = args["run-dir"] || `/tmp/nmail-${runId}`;
   const initialCredits = Number(args.credits ?? 50);
   const postageA = Number(args["postage-a"] ?? 3);
   const postageB = Number(args["postage-b"] ?? 4);
@@ -44,8 +44,8 @@ async function setup() {
     postageB,
     agentA: pickPublicAgent(agentA),
     agentB: pickPublicAgent(agentB),
-    threadAtoB: `ltthread:${runId}:a-to-b`,
-    threadBtoA: `ltthread:${runId}:b-to-a`,
+    threadAtoB: `nthread:${runId}:a-to-b`,
+    threadBtoA: `nthread:${runId}:b-to-a`,
     goalAtoB: "Agent A asks Agent B to confirm live relay delivery.",
     goalBtoA: "Agent B replies after claiming and acking Agent A's mail."
   };
@@ -230,10 +230,10 @@ async function signedFetch(agent, method, pathAndQuery, body) {
     method,
     headers: {
       "Content-Type": "application/json",
-      "X-LT-DID": agent.did,
-      "X-LT-Key-Id": agent.agentId,
-      "X-LT-Timestamp": timestamp,
-      "X-LT-Signature": signature
+      "X-Nerva-DID": agent.did,
+      "X-Nerva-Key-Id": agent.agentId,
+      "X-Nerva-Timestamp": timestamp,
+      "X-Nerva-Signature": signature
     },
     body: bodyText || undefined
   });
@@ -257,7 +257,7 @@ ON CONFLICT(did) DO UPDATE SET balance = excluded.balance, held = 0, llm_token_q
 `).join("\n");
   const sqlPath = join(runDir, "seed.sql");
   await writeFile(sqlPath, sql);
-  execFileSync("npx", ["wrangler", "d1", "execute", "lingtai-mail", "--remote", "--file", sqlPath], {
+  execFileSync("npx", ["wrangler", "d1", "execute", "nerva-mail", "--remote", "--file", sqlPath], {
     cwd: process.cwd(),
     stdio: "pipe",
     env: { ...process.env, CLOUDFLARE_API_TOKEN: "", CLOUDFLARE_ACCOUNT_ID: "" }
@@ -376,8 +376,8 @@ function sleep(ms) {
 function usage() {
   console.error(`Usage:
   node scripts/live-agent-mail.mjs setup --relay https://mail.nervafs.xyz
-  node scripts/live-agent-mail.mjs agent-a --run-dir /tmp/ltmail-two-codex-...
-  node scripts/live-agent-mail.mjs agent-b --run-dir /tmp/ltmail-two-codex-...
-  node scripts/live-agent-mail.mjs verify --run-dir /tmp/ltmail-two-codex-...
+  node scripts/live-agent-mail.mjs agent-a --run-dir /tmp/nmail-two-codex-...
+  node scripts/live-agent-mail.mjs agent-b --run-dir /tmp/nmail-two-codex-...
+  node scripts/live-agent-mail.mjs verify --run-dir /tmp/nmail-two-codex-...
 `);
 }

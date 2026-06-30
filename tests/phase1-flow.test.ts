@@ -7,7 +7,7 @@ import {
   generateDidKeyAgent
 } from "./support/test-env";
 
-describe("LingTai Agent Mail Phase 1 hosted relay", () => {
+describe("Nerva Mail Phase 1 hosted relay", () => {
   let services: TestServices;
   let sender: AgentRecord & { privateKey: CryptoKey };
   let recipient: AgentRecord & { privateKey: CryptoKey };
@@ -20,14 +20,14 @@ describe("LingTai Agent Mail Phase 1 hosted relay", () => {
 
   it("exposes public well-known metadata for mail.nervafs.xyz", async () => {
     const response = await handleRequest(
-      new Request("https://mail.nervafs.xyz/.well-known/ltmail"),
+      new Request("https://mail.nervafs.xyz/.well-known/nmail"),
       services.env,
       services
     );
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
-      protocol: "ltmail/0.1",
+      protocol: "nmail/0.1",
       relay: "https://mail.nervafs.xyz",
       features: expect.arrayContaining(["e2ee-reserved", "blob-uploads-disabled", "cursor-sync", "credits"]),
       maxAttachmentSize: 0
@@ -44,7 +44,7 @@ describe("LingTai Agent Mail Phase 1 hosted relay", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       status: "ok",
-      service: "lingtai-agent-mail"
+      service: "nerva-mail"
     });
   });
 
@@ -59,7 +59,7 @@ describe("LingTai Agent Mail Phase 1 hosted relay", () => {
     expect(response.headers.get("Content-Type")).toContain("text/html");
     const html = await response.text();
     expect(html).toContain("Agent Mail Owner Console");
-    expect(html).toContain("ltmail auth login");
+    expect(html).toContain("nmail auth login");
 
     const headResponse = await handleRequest(
       new Request("https://mail.nervafs.xyz/", { method: "HEAD" }),
@@ -88,7 +88,7 @@ describe("LingTai Agent Mail Phase 1 hosted relay", () => {
       method: "POST",
       body: { agent: sender }
     });
-    signed.headers.set("X-LT-Signature", "not-a-real-signature");
+    signed.headers.set("X-Nerva-Signature", "not-a-real-signature");
 
     const invalid = await handleRequest(signed, services.env, services);
 
@@ -106,7 +106,7 @@ describe("LingTai Agent Mail Phase 1 hosted relay", () => {
         type: "task.request",
         from: sender.did,
         to: [recipient.did],
-        thread: "ltthread:test",
+        thread: "nthread:test",
         body: { goal: "Review this architecture proposal" },
         postage: { creditAmount: 25 },
         attachments: []
@@ -185,7 +185,7 @@ describe("LingTai Agent Mail Phase 1 hosted relay", () => {
         type: "task.request",
         from: sender.did,
         to: [recipient.did],
-        thread: "ltthread:ui-login",
+        thread: "nthread:ui-login",
         body: { goal: "Summarize the relay deployment status" },
         postage: { creditAmount: 20 },
         attachments: []
@@ -324,7 +324,7 @@ describe("LingTai Agent Mail Phase 1 hosted relay", () => {
     );
     expect(challengeResponse.status).toBe(201);
     const challenge = await challengeResponse.json() as { code: string; nonce: string; command: string };
-    expect(challenge.command).toContain("ltmail auth login");
+    expect(challenge.command).toContain("nmail auth login");
 
     const cliCompleteRequest = await createSignedRequest(agent, "https://mail.nervafs.xyz/v0/ui/login/cli-complete", {
       method: "POST",
@@ -344,7 +344,7 @@ describe("LingTai Agent Mail Phase 1 hosted relay", () => {
     );
     expect(browserCompleteResponse.status).toBe(200);
     const cookie = browserCompleteResponse.headers.get("Set-Cookie");
-    expect(cookie).toContain("ltmail_session=");
+    expect(cookie).toContain("nmail_session=");
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("SameSite=Lax");
     return cookie?.split(";")[0] ?? "";
