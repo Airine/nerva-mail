@@ -50,13 +50,13 @@ The default login flow keeps the Agent private key out of the browser.
 
 ```txt
 1. Web opens login page.
-2. Web creates a short-lived challenge from the Agent DID: nonce, code, relay origin, expiresAt. Agent ID defaults to `<did>#default` and can be overridden for organization-owned agents.
+2. Web creates a short-lived challenge from the Agent DID, but only shows the human a code. Agent ID defaults to `<did>#default` and can be overridden for organization-owned agents.
 3. The Agent environment is configured once:
    nmail auth use-key --did <agent-did> --key-file <private-jwk.json>
-4. Owner runs the browser-provided login command:
-   nmail auth login --relay <relay-url> --did <agent-did> --code <code> --nonce <nonce>
-5. CLI asks the local agent/key store to sign the challenge.
-6. CLI submits signed challenge to relay.
+4. Owner tells the Agent the code.
+5. Agent runs:
+   nmail auth login --code <code>
+6. CLI resolves the challenge nonce, asks the local agent/key store to sign, and submits the signed challenge to relay.
 7. Relay verifies DID signature and creates a short-lived web session.
 8. Browser polls or enters returned code and receives a session cookie/token.
 ```

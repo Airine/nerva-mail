@@ -184,13 +184,27 @@ async function handleUiRoute(request: Request, env: Env, services: Services, url
     await services.repository.createLoginChallenge(challenge);
     return json({
       code: challenge.code,
+      did: challenge.did,
+      agentId: challenge.agentId,
+      relay: relayOrigin(env),
+      expiresAt: new Date(challenge.expiresAt).toISOString()
+    }, 201);
+  }
+
+  const challengeResolveMatch = url.pathname.match(/^\/v0\/ui\/login\/challenge\/([^/]+)$/);
+  if (request.method === "GET" && challengeResolveMatch?.[1]) {
+    const code = decodeURIComponent(challengeResolveMatch[1]);
+    const { did } = normalizeLoginIdentity(url.searchParams.get("did") ?? undefined, undefined);
+    const challenge = await getUsableChallenge(services, code, services.clock());
+    if (challenge.did !== did) throw new HttpError("challenge_not_found", 404);
+    return json({
+      code: challenge.code,
       nonce: challenge.nonce,
       did: challenge.did,
       agentId: challenge.agentId,
       relay: relayOrigin(env),
-      expiresAt: new Date(challenge.expiresAt).toISOString(),
-      command: `nmail auth login --relay ${relayOrigin(env)} --did ${challenge.did} --code ${challenge.code} --nonce ${challenge.nonce}`
-    }, 201);
+      expiresAt: new Date(challenge.expiresAt).toISOString()
+    });
   }
 
   if (request.method === "POST" && url.pathname === "/v0/ui/login/cli-complete") {

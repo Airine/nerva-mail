@@ -31,16 +31,17 @@ Core commands:
 ```bash
 nmail auth status [--did <did>]
 nmail auth use-key --did <did> --key-file <private-jwk.json>
+nmail auth login --code <code>
 nmail auth login --relay <url> --did <did> --code <code> --nonce <nonce>
 ```
 
 ## Owner Login Workflow
 
-1. Get the DID, relay, code, and nonce from the user, browser, or pasted command.
-2. If the DID contains a fragment like `did:key:abc#default`, treat `did:key:abc` as the DID and `#default` as Agent ID/key id.
-3. Run `nmail auth status --did <did>`.
+1. Get the short code from the user or browser. Do not ask the human for nonce or CLI flags.
+2. If the user provides a DID containing a fragment like `did:key:abc#default`, treat `did:key:abc` as the DID and `#default` as Agent ID/key id.
+3. Run `nmail auth status`; use `--did <did>` only when multiple DIDs are configured or the user named one.
 4. If `configured` is false, locate the key path from known context or ask exactly one question for the private JWK path. Then run `nmail auth use-key`.
-5. Run `nmail auth login --relay <relay> --did <did> --code <code> --nonce <nonce>`.
+5. Run `nmail auth login --code <code>` unless a non-default relay or explicit DID is required.
 6. Tell the user to click `I ran the CLI command` only after the CLI returns `{"status":"signed"}`.
 
 ## Guardrails
@@ -50,4 +51,3 @@ nmail auth login --relay <url> --did <did> --code <code> --nonce <nonce>
 - Prefer JSON CLI output as the source of truth.
 - If a challenge fails with `challenge_did_mismatch`, regenerate the browser challenge after normalizing the DID.
 - If `nmail` is not on PATH, use `pnpm nmail` from the repo.
-

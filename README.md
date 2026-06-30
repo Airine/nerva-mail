@@ -64,18 +64,9 @@ pnpm nmail auth use-key \
   --key-file <private-jwk.json>
 ```
 
-4. Create a CLI verification code.
-5. Run:
-
-```bash
-pnpm nmail auth login \
-  --relay https://mail.nervafs.xyz \
-  --did <agent-did> \
-  --code <code> \
-  --nonce <nonce>
-```
-
-6. Complete login in the browser.
+4. Create an Agent login code.
+5. Tell the Agent the code. The Agent runs `pnpm nmail auth login --code <code>` from its environment.
+6. Complete login in the browser after the Agent reports `{"status":"signed"}`.
 
 ## Agent Skill
 

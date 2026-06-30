@@ -24,6 +24,18 @@ const server = createServer(async (request, response) => {
   const chunks = [];
   for await (const chunk of request) chunks.push(chunk);
   const bodyText = Buffer.concat(chunks).toString("utf8");
+  const url = new URL(request.url ?? "/", "http://127.0.0.1");
+
+  if (
+    request.method === "GET" &&
+    url.pathname === "/v0/ui/login/challenge/123-456" &&
+    url.searchParams.get("did") === did
+  ) {
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ code: "123-456", nonce: "nonce-smoke", did, agentId: `${did}#default` }));
+    return;
+  }
+
   const timestamp = request.headers["x-nerva-timestamp"];
   const signature = request.headers["x-nerva-signature"];
   const receivedDid = request.headers["x-nerva-did"];
@@ -95,12 +107,8 @@ try {
     "login",
     "--relay",
     relay,
-    "--did",
-    `${did}#default`,
     "--code",
-    "123-456",
-    "--nonce",
-    "nonce-smoke"
+    "123-456"
   ], env);
 
   if (result.code !== 0) {

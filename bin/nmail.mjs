@@ -60,12 +60,13 @@ async function status() {
 }
 
 async function login() {
-  const relay = required(args.relay ?? process.env.NMAIL_RELAY, "--relay").replace(/\/+$/, "");
-  const { did, keyId: defaultKeyId } = normalizeDid(required(args.did ?? process.env.NMAIL_DID, "--did"));
+  const relay = (args.relay ?? process.env.NMAIL_RELAY ?? "https://mail.nervafs.xyz").replace(/\/+$/, "");
+  const { did, keyId: defaultKeyId } = await resolveDid();
   const keyFile = await resolveKeyFile(did);
   const code = required(args.code ?? process.env.NMAIL_CODE, "--code");
-  const nonce = required(args.nonce ?? process.env.NMAIL_NONCE, "--nonce");
-  const keyId = args["key-id"] || defaultKeyId || `${did}#default`;
+  const resolvedChallenge = args.nonce || process.env.NMAIL_NONCE ? null : await resolveChallenge(relay, did, code);
+  const nonce = required(args.nonce ?? process.env.NMAIL_NONCE ?? resolvedChallenge?.nonce, "challenge nonce");
+  const keyId = args["key-id"] || defaultKeyId || resolvedChallenge?.agentId || `${did}#default`;
   const privateKeyJwk = JSON.parse(await readFile(keyFile, "utf8"));
   const bodyText = stableJson({ code, nonce });
   const timestamp = String(Date.now());
@@ -87,6 +88,26 @@ async function login() {
     throw new Error(text || `nmail auth login failed with ${response.status}`);
   }
   console.log(text || JSON.stringify({ status: "signed" }));
+}
+
+async function resolveDid() {
+  const input = args.did ?? process.env.NMAIL_DID;
+  if (input && input !== "true") return normalizeDid(input);
+
+  const config = await readConfig();
+  const dids = Object.keys(config.keys ?? {});
+  if (dids.length === 1) return { did: dids[0] };
+  if (dids.length > 1) throw new Error(`Multiple DIDs are configured. Pass --did with one of: ${dids.join(", ")}`);
+  throw new Error("No DID configured. Run nmail auth use-key --did <did> --key-file <private-jwk.json>");
+}
+
+async function resolveChallenge(relay, did, code) {
+  const url = new URL(`${relay}/v0/ui/login/challenge/${encodeURIComponent(code)}`);
+  url.searchParams.set("did", did);
+  const response = await fetch(url);
+  const text = await response.text();
+  if (!response.ok) throw new Error(text || `challenge resolution failed with ${response.status}`);
+  return JSON.parse(text);
 }
 
 async function resolveKeyFile(did) {
@@ -164,6 +185,7 @@ function usage() {
   console.error(`Usage:
   nmail auth use-key --did <did> --key-file <private-jwk.json>
   nmail auth status [--did <did>]
+  nmail auth login --code <code>
   nmail auth login --relay <url> --did <did> --code <code> --nonce <nonce>
   nmail auth login --relay <url> --did <did> --key-file <private-jwk.json> --code <code> --nonce <nonce>
 

@@ -59,7 +59,9 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
     expect(response.headers.get("Content-Type")).toContain("text/html");
     const html = await response.text();
     expect(html).toContain("Agent Mail Owner Console");
-    expect(html).toContain("nmail auth login");
+    expect(html).toContain("Create Agent login code");
+    expect(html).toContain("Tell your Agent the code.");
+    expect(html).not.toContain("nmail auth login");
     expect(html).toContain("Advanced Agent ID");
     expect(html).toContain("Defaults to DID#default");
 
@@ -325,16 +327,25 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
       services
     );
     expect(challengeResponse.status).toBe(201);
-    const challenge = await challengeResponse.json() as { code: string; nonce: string; command: string; did: string; agentId: string };
+    const challenge = await challengeResponse.json() as { code: string; nonce?: string; command?: string; did: string; agentId: string };
     expect(challenge.did).toBe(agent.did);
     expect(challenge.agentId).toBe(agent.agentId);
-    expect(challenge.command).toContain("nmail auth login");
-    expect(challenge.command).toContain(`--did ${agent.did} `);
-    expect(challenge.command).not.toContain("--key-file");
+    expect(challenge.nonce).toBeUndefined();
+    expect(challenge.command).toBeUndefined();
+
+    const resolvedResponse = await handleRequest(
+      new Request(`https://mail.nervafs.xyz/v0/ui/login/challenge/${encodeURIComponent(challenge.code)}?did=${encodeURIComponent(agent.agentId)}`),
+      services.env,
+      services
+    );
+    expect(resolvedResponse.status).toBe(200);
+    const resolved = await resolvedResponse.json() as { nonce: string; did: string; agentId: string };
+    expect(resolved.did).toBe(agent.did);
+    expect(resolved.agentId).toBe(agent.agentId);
 
     const cliCompleteRequest = await createSignedRequest(agent, "https://mail.nervafs.xyz/v0/ui/login/cli-complete", {
       method: "POST",
-      body: { code: challenge.code, nonce: challenge.nonce }
+      body: { code: challenge.code, nonce: resolved.nonce }
     });
     const cliCompleteResponse = await handleRequest(cliCompleteRequest, services.env, services);
     expect(cliCompleteResponse.status).toBe(200);

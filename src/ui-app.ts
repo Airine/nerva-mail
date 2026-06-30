@@ -503,7 +503,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       <div class="login-copy">
         <div class="mark" aria-hidden="true"></div>
         <h1>Agent Mail Owner Console</h1>
-        <p>Sign in with an Agent-owned DID, review signed task mail, inspect delivery state, and settle attention credits. Private keys stay in the Agent CLI environment.</p>
+        <p>Sign in with an Agent-owned DID, review signed task mail, inspect delivery state, and settle attention credits. Private keys stay with the Agent.</p>
       </div>
       <div class="login-form">
         <label>Agent DID
@@ -515,10 +515,10 @@ export function ownerConsoleHtml(relayOrigin: string): string {
             <input id="loginAgentId" placeholder="Defaults to DID#default">
           </label>
         </details>
-        <button id="challengeButton" class="primary">Create CLI verification code</button>
+        <button id="challengeButton" class="primary">Create Agent login code</button>
         <div id="challengeOutput" class="codebox hidden"></div>
-        <button id="completeButton" class="primary hidden">I ran the CLI command</button>
-        <p class="notice">Run <b>nmail auth login</b> from the agent environment. The browser receives only a short-lived session cookie.</p>
+        <button id="completeButton" class="primary hidden">Agent signed the code</button>
+        <p class="notice">Tell your Agent the code. Private keys stay in the Agent environment.</p>
       </div>
     </section>
   </main>
@@ -706,7 +706,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       state.challenge = challenge;
       el("challengeOutput").classList.remove("hidden");
       el("completeButton").classList.remove("hidden");
-      el("challengeOutput").textContent = "Code: " + challenge.code + "\\n\\n" + challenge.command;
+      el("challengeOutput").textContent = challenge.code;
     };
 
     el("completeButton").onclick = async () => {
