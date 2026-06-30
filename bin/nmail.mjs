@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 
 const args = parseArgs(process.argv.slice(2));
-const VERSION = "0.1.1";
+const VERSION = "0.1.2";
 
 try {
   if (args.help || args.h || args._[0] === "help") {
@@ -21,6 +21,18 @@ try {
     await login();
   } else if (args._[0] === "agents" && args._[1] === "register") {
     await registerAgent();
+  } else if ((args._[0] === "mail" || args._[0] === "inbox") && (args._[1] === "inbox" || args._[1] === "sync" || args._[0] === "inbox")) {
+    await mailInbox();
+  } else if (args._[0] === "mail" && (args._[1] === "read" || args._[1] === "show")) {
+    await mailRead();
+  } else if (args._[0] === "mail" && args._[1] === "claim") {
+    await mailClaim();
+  } else if (args._[0] === "mail" && (args._[1] === "ack" || args._[1] === "reject")) {
+    await mailAck(args._[1] === "reject" ? "rejected" : "acked");
+  } else if (args._[0] === "mail" && args._[1] === "send") {
+    await mailSend();
+  } else if (args._[0] === "mail" && args._[1] === "reply") {
+    await mailReply();
   } else {
     usage();
     process.exit(1);
@@ -198,6 +210,156 @@ async function registerAgent() {
   console.log(text || JSON.stringify({ status: "registered", agent }));
 }
 
+async function mailInbox() {
+  const ctx = await resolveMailContext();
+  const cursor = args.cursor && args.cursor !== "true" ? args.cursor : "0";
+  const hydrated = args.hydrate !== "false" && args.raw !== "true";
+  const suffix = hydrated ? "messages" : "sync";
+  const path = `/v0/mailboxes/${encodeURIComponent(ctx.mailboxId)}/${suffix}?cursor=${encodeURIComponent(cursor)}`;
+  outputJson(await signedJsonFetch(ctx, "GET", path));
+}
+
+async function mailRead() {
+  const ctx = await resolveMailContext();
+  const messageId = messageIdArg();
+  outputJson(await signedJsonFetch(ctx, "GET", `/v0/messages/${encodeURIComponent(messageId)}?mailboxId=${encodeURIComponent(ctx.mailboxId)}`));
+}
+
+async function mailClaim() {
+  const ctx = await resolveMailContext();
+  const messageId = messageIdArg();
+  const leaseSeconds = numberArg(args["lease-seconds"] ?? args.lease, 300, "--lease-seconds");
+  outputJson(await signedJsonFetch(ctx, "POST", `/v0/mailboxes/${encodeURIComponent(ctx.mailboxId)}/claim`, {
+    messageId,
+    agentId: ctx.did,
+    leaseSeconds
+  }));
+}
+
+async function mailAck(state) {
+  const ctx = await resolveMailContext();
+  const messageId = messageIdArg();
+  outputJson(await signedJsonFetch(ctx, "POST", `/v0/messages/${encodeURIComponent(messageId)}/ack`, {
+    mailboxId: ctx.mailboxId,
+    state: args.state && args.state !== "true" ? args.state : state
+  }));
+}
+
+async function mailSend() {
+  const ctx = await resolveMailContext();
+  const to = recipientsArg();
+  const body = messageBodyFromArgs("goal");
+  const message = {
+    type: args.type && args.type !== "true" ? args.type : "task.request",
+    from: ctx.did,
+    to,
+    thread: args.thread && args.thread !== "true" ? args.thread : `nthread:${Date.now()}`,
+    body,
+    postage: { creditAmount: numberArg(args.postage ?? args["postage-credits"], 0, "--postage") },
+    attachments: jsonArg(args.attachments, [])
+  };
+  outputJson(await signedJsonFetch(ctx, "POST", "/v0/messages", message));
+}
+
+async function mailReply() {
+  const ctx = await resolveMailContext();
+  const messageId = messageIdArg();
+  const original = await signedJsonFetch(ctx, "GET", `/v0/messages/${encodeURIComponent(messageId)}?mailboxId=${encodeURIComponent(ctx.mailboxId)}`);
+  const raw = original?.message?.raw && typeof original.message.raw === "object" ? original.message.raw : {};
+  const to = args.to && args.to !== "true" ? splitCsv(args.to) : [original.senderDid || original.message?.senderDid].filter(Boolean);
+  if (!to.length) throw new Error("--to is required because original sender could not be inferred");
+  const body = messageBodyFromArgs("result", { inReplyTo: messageId });
+  const message = {
+    type: args.type && args.type !== "true" ? args.type : "task.response",
+    from: ctx.did,
+    to,
+    thread: args.thread && args.thread !== "true" ? args.thread : raw.thread || original.message?.thread || `nthread:reply:${messageId}`,
+    body,
+    postage: { creditAmount: numberArg(args.postage ?? args["postage-credits"], 0, "--postage") },
+    attachments: jsonArg(args.attachments, [])
+  };
+  const sent = await signedJsonFetch(ctx, "POST", "/v0/messages", message);
+  const ack = args.ack === "true"
+    ? await signedJsonFetch(ctx, "POST", `/v0/messages/${encodeURIComponent(messageId)}/ack`, { mailboxId: ctx.mailboxId, state: "acked" })
+    : null;
+  outputJson({ status: "replied", originalMessageId: messageId, sent, ack });
+}
+
+async function resolveMailContext() {
+  const relay = (args.relay ?? process.env.NMAIL_RELAY ?? "https://mail.nervafs.xyz").replace(/\/+$/, "");
+  const { did, keyId: defaultKeyId } = await resolveDid();
+  const keyFile = await resolveKeyFile(did);
+  const privateKeyJwk = JSON.parse(await readFile(keyFile, "utf8"));
+  const keyId = args["key-id"] || defaultKeyId || `${did}#default`;
+  const mailboxId = args.mailbox && args.mailbox !== "true"
+    ? normalizeDid(args.mailbox).did
+    : args["mailbox-id"] && args["mailbox-id"] !== "true"
+      ? normalizeDid(args["mailbox-id"]).did
+      : did;
+  return { relay, did, keyId, privateKeyJwk, mailboxId };
+}
+
+function messageIdArg() {
+  return required(args["message-id"] ?? args.id ?? args._[2], "--message-id");
+}
+
+function recipientsArg() {
+  const value = args.to ?? args.recipient ?? args._[2];
+  if (!value || value === "true") throw new Error("--to is required");
+  return splitCsv(value);
+}
+
+function splitCsv(value) {
+  return String(value).split(",").map((entry) => entry.trim()).filter(Boolean);
+}
+
+function messageBodyFromArgs(defaultTextKey, extra = {}) {
+  if (args.body && args.body !== "true") {
+    const parsed = jsonArg(args.body, {});
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("--body must be a JSON object");
+    }
+    return { ...extra, ...parsed };
+  }
+  const text = args.goal && args.goal !== "true"
+    ? args.goal
+    : args.text && args.text !== "true"
+      ? args.text
+      : positionalText();
+  if (!text) throw new Error(`--${defaultTextKey === "result" ? "text" : "goal"} is required unless --body is provided`);
+  return { ...extra, [defaultTextKey]: text };
+}
+
+function positionalText() {
+  if (args._[0] === "mail" && (args._[1] === "send" || args._[1] === "reply")) {
+    const start = args._[1] === "send"
+      ? (!args.to && !args.recipient ? 3 : 2)
+      : (!args["message-id"] && !args.id ? 3 : 2);
+    return args._.slice(start).join(" ").trim();
+  }
+  return "";
+}
+
+function jsonArg(value, fallback) {
+  if (!value || value === "true") return fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    throw new Error(`invalid_json_argument: ${value}`);
+  }
+}
+
+function numberArg(value, fallback, name) {
+  if (value === undefined || value === null || value === "true" || value === "") return fallback;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${name} must be a non-negative number`);
+  return parsed;
+}
+
+function outputJson(value) {
+  console.log(JSON.stringify(value, null, args.compact === "true" ? 0 : 2));
+}
+
 async function resolveDid() {
   const input = args.did ?? process.env.NMAIL_DID;
   if (input && input !== "true") return normalizeDid(input);
@@ -319,11 +481,18 @@ Usage:
   nmail auth login --relay <url> --did <did> --code <code> --nonce <nonce>
   nmail auth login --relay <url> --did <did> --key-file <private-jwk.json> --code <code> --nonce <nonce>
   nmail agents register [--relay <url>] [--did <did>]
+  nmail mail inbox [--cursor <cursor>] [--raw]
+  nmail mail read <message-id>
+  nmail mail claim <message-id> [--lease-seconds 300]
+  nmail mail ack <message-id>
+  nmail mail reject <message-id>
+  nmail mail send --to <did>[,<did>] --goal <text> [--postage 0]
+  nmail mail reply <message-id> --text <text> [--ack]
 
 Run without installing:
-  npx @nervafs/nmail auth login --code <code>
+  npx --package github:Airine/nerva-mail#v0.1.2 nmail mail inbox
 
-The command signs the browser login challenge and submits it to /v0/ui/login/cli-complete.
+Mail commands sign relay requests with the Agent DID and output JSON for automation.
 The Agent private key stays on the machine running this CLI. generate defaults to
 Nerva-hosted production did:web and writes a private JWK under ~/.nerva-mail/keys.
 Pass --domain only when an organization wants to self-host its DID Document. did:key
@@ -333,24 +502,35 @@ Env fallbacks: NMAIL_CONFIG, NMAIL_DID, NMAIL_KEY_FILE, NMAIL_RELAY, NMAIL_CODE,
 }
 
 async function signedJsonRequest(relay, method, path, did, keyId, privateKeyJwk, body) {
-  const bodyText = stableJson(body);
+  return signedRequest({ relay, did, keyId, privateKeyJwk }, method, path, body);
+}
+
+async function signedJsonFetch(ctx, method, pathAndQuery, body) {
+  const text = await signedRequest(ctx, method, pathAndQuery, body);
+  return text ? JSON.parse(text) : {};
+}
+
+async function signedRequest(ctx, method, pathAndQuery, body) {
+  const bodyText = body === undefined ? "" : stableJson(body);
   const timestamp = String(Date.now());
+  const relay = ctx.relay.replace(/\/+$/, "");
+  const path = new URL(`${relay}${pathAndQuery}`).pathname;
   const payload = `${method.toUpperCase()}\n${path}\n${await sha256Hex(bodyText)}\n${timestamp}`;
-  const signature = await signP256(privateKeyJwk, payload);
-  const response = await fetch(`${relay}${path}`, {
+  const signature = await signP256(ctx.privateKeyJwk, payload);
+  const response = await fetch(`${relay}${pathAndQuery}`, {
     method,
     headers: {
       "Content-Type": "application/json",
-      "X-Nerva-DID": did,
-      "X-Nerva-Key-Id": keyId,
+      "X-Nerva-DID": ctx.did,
+      "X-Nerva-Key-Id": ctx.keyId,
       "X-Nerva-Timestamp": timestamp,
       "X-Nerva-Signature": signature
     },
-    body: bodyText
+    body: bodyText || undefined
   });
   const text = await response.text();
   if (!response.ok) {
-    throw new Error(text || `${method} ${path} failed with ${response.status}`);
+    throw new Error(text || `${method} ${pathAndQuery} failed with ${response.status}`);
   }
   return text;
 }

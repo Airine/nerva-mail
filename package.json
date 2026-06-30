@@ -1,6 +1,6 @@
 {
   "name": "@nervafs/nmail",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Agent-native DID-signed mail CLI for Nerva Mail.",
   "private": false,
   "type": "module",

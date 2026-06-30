@@ -20,6 +20,46 @@ const configFile = join(tmp, "config.json");
 await writeFile(keyFile, JSON.stringify(privateKeyJwk), "utf8");
 
 let verified = false;
+const bossDid = "did:key:boss";
+const inboundMessageId = "sha256:inbound";
+const acceptedMessages = [];
+let claimed = false;
+let acked = false;
+const inboundRaw = {
+  id: inboundMessageId,
+  version: "nmail/0.1",
+  type: "task.request",
+  from: bossDid,
+  to: [did],
+  thread: "nthread:cli-smoke",
+  body: { goal: "Report CLI mailbox status", channel: "nerva-mail" },
+  postage: { creditAmount: 0 },
+  attachments: []
+};
+const inboundDelivery = {
+  deliveryId: "delivery:cli-smoke",
+  mailboxId: did,
+  messageId: inboundMessageId,
+  recipientDid: did,
+  senderDid: bossDid,
+  deliveryState: "available",
+  cursor: "1",
+  priorityScore: 100,
+  postageCredits: 0,
+  receivedAt: 1_800_000_000_000,
+  message: {
+    messageId: inboundMessageId,
+    type: "task.request",
+    senderDid: bossDid,
+    recipientDids: [did],
+    thread: "nthread:cli-smoke",
+    bodyObjectKey: "messages/inbound.json",
+    postageCredits: 0,
+    rawJson: JSON.stringify(inboundRaw),
+    createdAt: 1_800_000_000_000,
+    raw: inboundRaw
+  }
+};
 const server = createServer(async (request, response) => {
   const chunks = [];
   for await (const chunk of request) chunks.push(chunk);
@@ -41,32 +81,78 @@ const server = createServer(async (request, response) => {
   const receivedDid = request.headers["x-nerva-did"];
   const keyId = request.headers["x-nerva-key-id"];
 
-  if (
-    request.method === "POST" &&
-    request.url === "/v0/ui/login/cli-complete" &&
-    receivedDid === did &&
-    keyId === `${did}#default` &&
-    typeof timestamp === "string" &&
-    typeof signature === "string"
-  ) {
-    const payload = `POST\n/v0/ui/login/cli-complete\n${await sha256Hex(bodyText)}\n${timestamp}`;
-    const key = await crypto.subtle.importKey(
-      "jwk",
-      publicKeyJwk,
-      { name: "ECDSA", namedCurve: "P-256" },
-      false,
-      ["verify"]
-    );
-    verified = await crypto.subtle.verify(
-      { name: "ECDSA", hash: "SHA-256" },
-      key,
-      base64UrlDecode(signature),
-      new TextEncoder().encode(payload)
-    );
+  const signed = await verifySignedRequest(request.method, url.pathname, bodyText, {
+    receivedDid,
+    keyId,
+    timestamp,
+    signature
+  });
+  if (!signed) {
+    response.writeHead(400, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ error: "bad_signature" }));
+    return;
   }
 
-  response.writeHead(verified ? 200 : 400, { "Content-Type": "application/json" });
-  response.end(JSON.stringify(verified ? { status: "signed" } : { error: "bad_signature" }));
+  if (request.method === "POST" && request.url === "/v0/ui/login/cli-complete") {
+    verified = true;
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ status: "signed" }));
+    return;
+  }
+
+  const mailboxMessagesMatch = url.pathname.match(/^\/v0\/mailboxes\/(.+)\/messages$/);
+  if (request.method === "GET" && mailboxMessagesMatch?.[1] && decodeURIComponent(mailboxMessagesMatch[1]) === did) {
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ cursor: "1", messages: [inboundDelivery] }));
+    return;
+  }
+
+  const mailboxSyncMatch = url.pathname.match(/^\/v0\/mailboxes\/(.+)\/sync$/);
+  if (request.method === "GET" && mailboxSyncMatch?.[1] && decodeURIComponent(mailboxSyncMatch[1]) === did) {
+    const { message, ...delivery } = inboundDelivery;
+    void message;
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ cursor: "1", messages: [delivery] }));
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === `/v0/messages/${encodeURIComponent(inboundMessageId)}`) {
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(JSON.stringify(inboundDelivery));
+    return;
+  }
+
+  const mailboxClaimMatch = url.pathname.match(/^\/v0\/mailboxes\/(.+)\/claim$/);
+  if (request.method === "POST" && mailboxClaimMatch?.[1] && decodeURIComponent(mailboxClaimMatch[1]) === did) {
+    const body = JSON.parse(bodyText);
+    claimed = body.messageId === inboundMessageId && body.agentId === did;
+    response.writeHead(claimed ? 200 : 400, { "Content-Type": "application/json" });
+    response.end(JSON.stringify(claimed ? { status: "claimed", leaseUntil: "2027-01-15T08:05:00.000Z" } : { error: "bad_claim" }));
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === `/v0/messages/${encodeURIComponent(inboundMessageId)}/ack`) {
+    const body = JSON.parse(bodyText);
+    acked = body.mailboxId === did && body.state === "acked";
+    response.writeHead(acked ? 200 : 400, { "Content-Type": "application/json" });
+    response.end(JSON.stringify(acked ? { status: "acked" } : { error: "bad_ack" }));
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/v0/messages") {
+    const body = JSON.parse(bodyText);
+    acceptedMessages.push(body);
+    response.writeHead(202, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({
+      status: "accepted",
+      messageId: `sha256:sent-${acceptedMessages.length}`,
+      deliveries: body.to.map((mailboxId, index) => ({ mailboxId, cursor: String(index + 1) }))
+    }));
+    return;
+  }
+
+  response.writeHead(404, { "Content-Type": "application/json" });
+  response.end(JSON.stringify({ error: "not_found", path: request.url }));
 });
 
 try {
@@ -200,6 +286,98 @@ try {
     console.error("CLI request was not verified by the smoke relay");
     process.exit(1);
   }
+
+  const sendResult = await run(process.execPath, [
+    "bin/nmail.mjs",
+    "mail",
+    "send",
+    "--relay",
+    relay,
+    "--to",
+    bossDid,
+    "--goal",
+    "Hello from CLI"
+  ], env);
+  if (sendResult.code !== 0) {
+    console.error(sendResult.stderr || sendResult.stdout);
+    process.exit(sendResult.code ?? 1);
+  }
+  const sent = JSON.parse(sendResult.stdout);
+  if (sent.status !== "accepted" || acceptedMessages.at(-1)?.body?.goal !== "Hello from CLI") {
+    console.error(sendResult.stdout);
+    process.exit(1);
+  }
+
+  const inboxResult = await run(process.execPath, [
+    "bin/nmail.mjs",
+    "mail",
+    "inbox",
+    "--relay",
+    relay
+  ], env);
+  if (inboxResult.code !== 0) {
+    console.error(inboxResult.stderr || inboxResult.stdout);
+    process.exit(inboxResult.code ?? 1);
+  }
+  const inbox = JSON.parse(inboxResult.stdout);
+  if (inbox.messages?.[0]?.message?.raw?.body?.goal !== "Report CLI mailbox status") {
+    console.error(inboxResult.stdout);
+    process.exit(1);
+  }
+
+  const readResult = await run(process.execPath, [
+    "bin/nmail.mjs",
+    "mail",
+    "read",
+    inboundMessageId,
+    "--relay",
+    relay
+  ], env);
+  if (readResult.code !== 0 || JSON.parse(readResult.stdout).message?.raw?.thread !== "nthread:cli-smoke") {
+    console.error(readResult.stderr || readResult.stdout);
+    process.exit(readResult.code || 1);
+  }
+
+  const claimResult = await run(process.execPath, [
+    "bin/nmail.mjs",
+    "mail",
+    "claim",
+    inboundMessageId,
+    "--relay",
+    relay
+  ], env);
+  if (claimResult.code !== 0 || !claimed) {
+    console.error(claimResult.stderr || claimResult.stdout);
+    process.exit(claimResult.code || 1);
+  }
+
+  const replyResult = await run(process.execPath, [
+    "bin/nmail.mjs",
+    "mail",
+    "reply",
+    inboundMessageId,
+    "--relay",
+    relay,
+    "--text",
+    "CLI mailbox is working",
+    "--ack"
+  ], env);
+  if (replyResult.code !== 0) {
+    console.error(replyResult.stderr || replyResult.stdout);
+    process.exit(replyResult.code ?? 1);
+  }
+  const reply = JSON.parse(replyResult.stdout);
+  const repliedMessage = acceptedMessages.at(-1);
+  if (
+    reply.status !== "replied" ||
+    repliedMessage?.type !== "task.response" ||
+    repliedMessage?.to?.[0] !== bossDid ||
+    repliedMessage?.body?.result !== "CLI mailbox is working" ||
+    !acked
+  ) {
+    console.error(replyResult.stdout);
+    process.exit(1);
+  }
 } finally {
   server.close();
   await rm(tmp, { recursive: true, force: true });
@@ -221,6 +399,31 @@ async function run(command, args, env = {}) {
     stdout: Buffer.concat(stdout).toString("utf8"),
     stderr: Buffer.concat(stderr).toString("utf8")
   };
+}
+
+async function verifySignedRequest(method, path, bodyText, headers) {
+  if (
+    headers.receivedDid !== did ||
+    headers.keyId !== `${did}#default` ||
+    typeof headers.timestamp !== "string" ||
+    typeof headers.signature !== "string"
+  ) {
+    return false;
+  }
+  const payload = `${method}\n${path}\n${await sha256Hex(bodyText)}\n${headers.timestamp}`;
+  const key = await crypto.subtle.importKey(
+    "jwk",
+    publicKeyJwk,
+    { name: "ECDSA", namedCurve: "P-256" },
+    false,
+    ["verify"]
+  );
+  return crypto.subtle.verify(
+    { name: "ECDSA", hash: "SHA-256" },
+    key,
+    base64UrlDecode(headers.signature),
+    new TextEncoder().encode(payload)
+  );
 }
 
 function stableJson(value) {

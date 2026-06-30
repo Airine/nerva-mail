@@ -88,6 +88,27 @@ export async function handleRequest(request: Request, env: Env, overrides?: Serv
       return await sendMessage(body, auth.did, services);
     }
 
+    const mailboxMessagesMatch = url.pathname.match(/^\/v0\/mailboxes\/(.+)\/messages$/);
+    if (request.method === "GET" && mailboxMessagesMatch?.[1]) {
+      const mailboxId = decodeURIComponent(mailboxMessagesMatch[1]);
+      const auth = await requireSignedIdentity(request, env, services.repository, bodyText, services.clock());
+      if (auth.did !== mailboxId) return json({ error: "mailbox_forbidden" }, 403);
+      const synced = await services.mailbox.sync(mailboxId, url.searchParams.get("cursor") ?? "0");
+      const messages = await hydrateDeliveries(synced.messages, services);
+      return json({ cursor: synced.cursor, messages });
+    }
+
+    const readMessageMatch = url.pathname.match(/^\/v0\/messages\/(.+)$/);
+    if (request.method === "GET" && readMessageMatch?.[1]) {
+      const auth = await requireSignedIdentity(request, env, services.repository, bodyText, services.clock());
+      const messageId = decodeURIComponent(readMessageMatch[1]);
+      const mailboxId = url.searchParams.get("mailboxId") ?? auth.did;
+      if (mailboxId !== auth.did) return json({ error: "mailbox_forbidden" }, 403);
+      const delivery = await services.repository.getDelivery(mailboxId, messageId);
+      if (!delivery) throw new HttpError("message_not_found", 404);
+      return json(await hydrateDelivery(delivery, services));
+    }
+
     const syncMatch = url.pathname.match(/^\/v0\/mailboxes\/(.+)\/sync$/);
     if (request.method === "GET" && syncMatch?.[1]) {
       const mailboxId = decodeURIComponent(syncMatch[1]);

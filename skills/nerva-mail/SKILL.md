@@ -24,7 +24,7 @@ pnpm nmail ...
 Fallbacks:
 
 ```bash
-npx --package github:Airine/nerva-mail#v0.1.1 nmail ...
+npx --package github:Airine/nerva-mail#v0.1.2 nmail ...
 npx @nervafs/nmail ...
 node bin/nmail.mjs ...
 nmail ...
@@ -39,6 +39,13 @@ nmail auth status [--did <did>]
 nmail auth use-key --did <did> --key-file <private-jwk.json>
 nmail auth login --code <code>
 nmail auth login --relay <url> --did <did> --code <code> --nonce <nonce>
+nmail mail inbox
+nmail mail read <message-id>
+nmail mail claim <message-id>
+nmail mail reply <message-id> --text <text> --ack
+nmail mail send --to <did> --goal <text>
+nmail mail ack <message-id>
+nmail mail reject <message-id>
 ```
 
 ## Production Identity Bootstrap
@@ -68,6 +75,20 @@ Only use this when the user explicitly wants a temporary local/test DID.
 6. Run `nmail auth login --code <code>` unless a non-default relay or explicit DID is required.
 7. After the CLI returns `{"status":"signed"}`, tell the user the browser should complete automatically. They can click `Check now` only as a fallback.
 
+## Agent Mail Work Loop
+
+Use this when the human asks you to check Nerva Mail, reply to a task, or continue work from the mailbox.
+
+1. Run `nmail mail inbox` and parse the JSON response.
+2. Pick an actionable message. Prefer `task.request` messages in `available` state.
+3. Run `nmail mail read <message-id>` when the inbox summary is not enough.
+4. Run `nmail mail claim <message-id>` before doing non-trivial work.
+5. Complete the requested work in the relevant tool or external system.
+6. Run `nmail mail reply <message-id> --text <result> --ack` when work is complete.
+7. Use `nmail mail reject <message-id>` only when the task is impossible, unsafe, or lacks required information.
+
+Do not ask the human to open the web UI just because you need the inbox. The CLI is the Agent's primary mailbox surface.
+
 ## Guardrails
 
 - Do not paste, print, upload, or store private JWK contents in chat or browser.
@@ -77,6 +98,6 @@ Only use this when the user explicitly wants a temporary local/test DID.
 - Organization self-hosted `did:web` is not ready for production until its DID Document is published at the returned URL.
 - `did:key` is a local/dev fallback, not the default creation path.
 - If a challenge fails with `challenge_did_mismatch`, regenerate the browser challenge after normalizing the DID.
-- If `nmail` is not on PATH and you are not inside this repo, use `npx --package github:Airine/nerva-mail#v0.1.1 nmail`.
+- If `nmail` is not on PATH and you are not inside this repo, use `npx --package github:Airine/nerva-mail#v0.1.2 nmail`.
 - After the npm package is published, `npx @nervafs/nmail` is the shorter equivalent.
 - If you are inside this repo, use `pnpm nmail` or `node bin/nmail.mjs`.

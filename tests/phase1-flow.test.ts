@@ -74,8 +74,9 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
     expect(html).toContain("Create Agent login code");
     expect(html).toContain("Let Agents receive messages, take tasks, and report status.");
     expect(html).toContain("Waiting for Agent signature.");
-    expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.1 nmail auth generate --name");
-    expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.1 nmail auth login");
+    expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.2 nmail auth generate --name");
+    expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.2 nmail auth login");
+    expect(html).toContain("npx --package github:Airine/nerva-mail#v0.1.2 nmail mail inbox");
     expect(html).not.toContain("--key-file");
     expect(html).not.toContain("nonce");
     expect(html).not.toContain("Claim、lease、ack 和 postage");
@@ -200,6 +201,47 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
     expect(synced.messages).toEqual([
       expect.objectContaining({ messageId: sent.messageId, deliveryState: "available" })
     ]);
+
+    const inboxRequest = await createSignedRequest(
+      recipient,
+      `https://mail.nervafs.xyz/v0/mailboxes/${encodeURIComponent(recipient.did)}/messages?cursor=0`,
+      { method: "GET" }
+    );
+    const inboxResponse = await handleRequest(inboxRequest, services.env, services);
+    expect(inboxResponse.status).toBe(200);
+    const signedInbox = await inboxResponse.json() as {
+      messages: Array<{ messageId: string; message: { raw: { body: { goal: string } } } }>;
+    };
+    expect(signedInbox.messages).toEqual([
+      expect.objectContaining({
+        messageId: sent.messageId,
+        message: expect.objectContaining({
+          raw: expect.objectContaining({ body: { goal: "Review this architecture proposal" } })
+        })
+      })
+    ]);
+
+    const readRequest = await createSignedRequest(
+      recipient,
+      `https://mail.nervafs.xyz/v0/messages/${encodeURIComponent(sent.messageId)}?mailboxId=${encodeURIComponent(recipient.did)}`,
+      { method: "GET" }
+    );
+    const readResponse = await handleRequest(readRequest, services.env, services);
+    expect(readResponse.status).toBe(200);
+    await expect(readResponse.json()).resolves.toMatchObject({
+      messageId: sent.messageId,
+      message: {
+        raw: { body: { goal: "Review this architecture proposal" } }
+      }
+    });
+
+    const forbiddenInboxRequest = await createSignedRequest(
+      sender,
+      `https://mail.nervafs.xyz/v0/mailboxes/${encodeURIComponent(recipient.did)}/messages?cursor=0`,
+      { method: "GET" }
+    );
+    const forbiddenInboxResponse = await handleRequest(forbiddenInboxRequest, services.env, services);
+    expect(forbiddenInboxResponse.status).toBe(403);
 
     const claimRequest = await createSignedRequest(
       recipient,
