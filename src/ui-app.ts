@@ -803,12 +803,12 @@ export function ownerConsoleHtml(relayOrigin: string): string {
 
   <dialog id="composeDialog">
     <form id="composeForm" method="dialog">
-      <div class="dialog-head"><h2 data-i18n="composeTitle">撰写任务邮件</h2><button class="action secondary" value="cancel" data-i18n="close">关闭</button></div>
+      <div class="dialog-head"><h2 data-i18n="composeTitle">撰写任务邮件</h2><button id="composeCloseButton" class="action secondary" type="button" data-i18n="close">关闭</button></div>
       <div class="dialog-body">
         <label><span data-i18n="toDid">收件 DID</span><input id="composeTo" required></label>
         <label><span data-i18n="goal">目标</span><textarea id="composeGoal" required></textarea></label>
         <label><span data-i18n="postageCredits">邮资积分</span><input id="composePostage" type="number" min="0" value="0"></label>
-        <button class="primary" value="default" data-i18n="sendTask">发送 task.request</button>
+        <button class="primary" type="submit" value="default" data-i18n="sendTask">发送 task.request</button>
         <p class="notice" data-i18n="attachmentsDisabled">Phase 1 暂不支持附件。</p>
       </div>
     </form>
@@ -1251,6 +1251,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
     };
 
     el("composeButton").onclick = () => el("composeDialog").showModal();
+    el("composeCloseButton").onclick = () => el("composeDialog").close();
     el("composeForm").onsubmit = async (event) => {
       event.preventDefault();
       await api("/v0/ui/messages", {

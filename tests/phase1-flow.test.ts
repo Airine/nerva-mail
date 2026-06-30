@@ -82,6 +82,8 @@ describe("Nerva Mail Phase 1 hosted relay", () => {
     expect(html).not.toContain("attention credits");
     expect(html).toContain("高级 Agent ID");
     expect(html).toContain("默认 DID#default");
+    expect(html).toContain('id="composeCloseButton" class="action secondary" type="button"');
+    expect(html).toContain('class="primary" type="submit" value="default"');
 
     const headResponse = await handleRequest(
       new Request("https://mail.nervafs.xyz/", { method: "HEAD" }),
