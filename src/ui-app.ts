@@ -56,7 +56,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       min-height: 100vh;
       background: var(--bg);
       color: var(--text);
-      letter-spacing: -0.006em;
+      letter-spacing: 0;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
       overflow: hidden;
@@ -117,7 +117,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       color: var(--on-accent);
       font-size: 15px;
       font-weight: 650;
-      letter-spacing: -0.04em;
+      letter-spacing: 0;
     }
     .brand-title {
       line-height: 1.1;
@@ -127,7 +127,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       display: block;
       font-size: 15px;
       font-weight: 650;
-      letter-spacing: -0.02em;
+      letter-spacing: 0;
     }
     .brand-title span {
       display: block;
@@ -222,7 +222,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       margin: 0;
       font-size: 13px;
       text-transform: uppercase;
-      letter-spacing: 0.12em;
+      letter-spacing: 0;
       color: var(--text-3);
       font-family: var(--font-mono);
       font-weight: 500;
@@ -295,6 +295,10 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       font-weight: 500;
       font-family: var(--font-mono);
       box-shadow: inset 0 0 0 1px var(--border);
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .chip.teal {
       background: var(--accent-dim);
@@ -304,6 +308,24 @@ export function ownerConsoleHtml(relayOrigin: string): string {
     .chip.amber {
       background: var(--risk-med-bg);
       color: var(--risk-med);
+    }
+    .mail-type {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      max-width: 100%;
+      border-radius: var(--r-full);
+      padding: 3px 7px;
+      margin-bottom: 7px;
+      background: var(--panel-2);
+      color: var(--text-2);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      box-shadow: inset 0 0 0 1px var(--border);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .mail-row {
       display: grid;
@@ -328,6 +350,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       font-size: 14px;
       font-weight: 650;
       line-height: 1.35;
+      overflow-wrap: anywhere;
     }
     .mail-row p {
       margin: 0;
@@ -362,6 +385,14 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       margin: 0 0 8px;
       font-size: 13px;
     }
+    .detail-box h4 {
+      margin: 0 0 8px;
+      color: var(--text-2);
+      font-size: 11px;
+      font-weight: 650;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
     .detail-box pre {
       margin: 0;
       max-height: 250px;
@@ -372,6 +403,84 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       font-size: 12px;
       line-height: 1.45;
       font-family: var(--font-mono);
+    }
+    .semantic-task {
+      border-color: var(--accent-line);
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--accent-dim), transparent 54%), transparent 170px),
+        var(--card);
+    }
+    .semantic-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .semantic-goal {
+      margin: 0 0 14px;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.58;
+      overflow-wrap: anywhere;
+    }
+    .semantic-note {
+      margin-top: 12px;
+      padding: 10px 11px;
+      border-radius: var(--r-md);
+      background: var(--risk-med-bg);
+      color: color-mix(in srgb, var(--risk-med), #1b1e24 20%);
+      font-size: 12px;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+    .semantic-quote {
+      margin-top: 12px;
+      padding: 10px 11px;
+      border-left: 3px solid var(--accent);
+      background: var(--panel-2);
+      border-radius: var(--r-sm);
+      color: var(--text-2);
+      font-size: 12px;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+    .kv-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin: 0;
+    }
+    .kv-grid div {
+      min-width: 0;
+      padding: 9px 10px;
+      border: 1px solid var(--border-soft);
+      border-radius: var(--r-md);
+      background: color-mix(in srgb, var(--panel-2), transparent 45%);
+    }
+    .kv-grid dt {
+      margin: 0 0 5px;
+      color: var(--text-3);
+      font-size: 11px;
+    }
+    .kv-grid dd {
+      margin: 0;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+    .raw-envelope summary {
+      cursor: pointer;
+      color: var(--text-2);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .raw-envelope pre {
+      margin-top: 10px;
     }
     .actions {
       display: grid;
@@ -422,7 +531,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       margin: 0 0 12px;
       font-size: clamp(28px, 3.2vw, 34px);
       line-height: 1.12;
-      letter-spacing: -0.03em;
+      letter-spacing: 0;
       font-weight: 650;
     }
     .login-copy p {
@@ -440,14 +549,14 @@ export function ownerConsoleHtml(relayOrigin: string): string {
     }
     .login-lockup span {
       font-weight: 650;
-      letter-spacing: -0.02em;
+      letter-spacing: 0;
     }
     .login-kicker, .form-kicker {
       color: var(--accent);
       font-family: var(--font-mono);
       font-size: 10.5px;
       font-weight: 500;
-      letter-spacing: 0.12em;
+      letter-spacing: 0;
       text-transform: uppercase;
     }
     .login-copy-body {
@@ -568,7 +677,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       font-size: 12px;
       font-weight: 500;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0;
       font-family: var(--font-mono);
     }
     input, textarea {
@@ -609,7 +718,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       color: var(--text-2);
       font-size: 12px;
       font-weight: 500;
-      letter-spacing: 0.08em;
+      letter-spacing: 0;
       padding: 10px;
       text-transform: uppercase;
       font-family: var(--font-mono);
@@ -640,7 +749,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       line-height: 1;
       font-weight: 600;
       text-align: center;
-      letter-spacing: 0.04em;
+      letter-spacing: 0;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
     }
@@ -708,6 +817,9 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       }
     }
     @media (max-width: 760px) {
+      .kv-grid {
+        grid-template-columns: 1fr;
+      }
       .login-panel {
         grid-template-columns: 1fr;
       }
@@ -882,6 +994,28 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         credits: "积分",
         creditsBody: "邮资：{postage}\\nack 时结算，reject 时退款",
         body: "正文",
+        taskGoal: "任务目标",
+        messageType: "类型",
+        channel: "渠道",
+        requestedAction: "动作",
+        thread: "线程",
+        safetyBoundary: "安全边界",
+        humanRequest: "人类原始请求",
+        extraFields: "补充字段",
+        rawEnvelope: "原始 JSON 信封",
+        routeAndSignature: "路由与签名",
+        relayStatus: "Relay 状态",
+        acceptedByRelay: "已验签并接收",
+        sender: "发送方",
+        recipient: "接收方",
+        deliveryState: "投递状态",
+        leaseUntil: "租约到期",
+        priorityScore: "优先级",
+        postage: "邮资",
+        settlement: "结算",
+        settlementHint: "Ack 时结算，Reject 时退款",
+        unknown: "未知",
+        semanticUnavailable: "这封邮件没有可识别的任务正文。",
         claim: "Claim",
         ack: "Ack",
         reject: "Reject",
@@ -956,6 +1090,28 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         credits: "Credits",
         creditsBody: "postage: {postage}\\nsettles on ack, refunds on reject",
         body: "Body",
+        taskGoal: "Task goal",
+        messageType: "Type",
+        channel: "Channel",
+        requestedAction: "Action",
+        thread: "Thread",
+        safetyBoundary: "Safety boundary",
+        humanRequest: "Original human request",
+        extraFields: "Additional fields",
+        rawEnvelope: "Raw JSON envelope",
+        routeAndSignature: "Route and signature",
+        relayStatus: "Relay status",
+        acceptedByRelay: "Verified and accepted",
+        sender: "Sender",
+        recipient: "Recipient",
+        deliveryState: "Delivery state",
+        leaseUntil: "Lease until",
+        priorityScore: "Priority score",
+        postage: "Postage",
+        settlement: "Settlement",
+        settlementHint: "Settles on Ack, refunds on Reject",
+        unknown: "unknown",
+        semanticUnavailable: "This mail does not include a recognizable task body.",
         claim: "Claim",
         ack: "Ack",
         reject: "Reject",
@@ -1167,10 +1323,14 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       state.messages.forEach((row, index) => {
         const button = document.createElement("button");
         button.className = "mail-row" + (index === 0 ? " active" : "");
-        const raw = row.message?.raw || {};
-        const goal = raw.body?.goal || row.message?.thread || row.message?.type;
+        const raw = messageRaw(row);
+        const body = messageBody(raw);
+        const type = raw.type || row.message?.type || row.messageId;
+        const channel = shortValue(body.channel, 28);
+        const action = shortValue(body.requestedAction, 36);
+        const summary = messageSummary(row);
         button.title = row.senderDid || "";
-        button.innerHTML = "<div><h3>" + escapeHtml(row.message?.type || row.messageId) + " · " + escapeHtml(goal || t("noGoal")) + "</h3><p>" + escapeHtml(t("mailFrom", { sender: compactDid(row.senderDid) })) + " · " + escapeHtml(t("mailState", { state: row.deliveryState })) + " · " + escapeHtml(t("mailPostage", { postage: row.postageCredits })) + "</p><div class='chips'><span class='chip teal'>" + escapeHtml(row.deliveryState) + "</span><span class='chip amber'>" + escapeHtml(t("scoreChip", { score: row.priorityScore })) + "</span></div></div><div class='score'>" + row.postageCredits + "</div>";
+        button.innerHTML = "<div><span class='mail-type'>" + escapeHtml(type) + "</span><h3>" + escapeHtml(summary) + "</h3><p>" + escapeHtml(t("mailFrom", { sender: compactDid(row.senderDid) })) + " · " + escapeHtml(t("mailState", { state: row.deliveryState })) + " · " + escapeHtml(t("mailPostage", { postage: row.postageCredits })) + "</p><div class='chips'><span class='chip teal'>" + escapeHtml(row.deliveryState) + "</span>" + (channel ? "<span class='chip'>" + escapeHtml(channel) + "</span>" : "") + (action ? "<span class='chip'>" + escapeHtml(action) + "</span>" : "") + "<span class='chip amber'>" + escapeHtml(t("scoreChip", { score: row.priorityScore })) + "</span></div></div><div class='score'>" + row.postageCredits + "</div>";
         button.onclick = () => selectMessage(row, button);
         container.appendChild(button);
         if (index === 0) selectMessage(row, button);
@@ -1181,15 +1341,101 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       state.selected = row;
       document.querySelectorAll(".mail-row").forEach((node) => node.classList.remove("active"));
       button.classList.add("active");
-      const raw = row.message?.raw || {};
-      el("detail").innerHTML = "<div class='detail-box'><h3>" + escapeHtml(t("signature")) + "</h3><pre>" + escapeHtml(t("signatureBody", { sender: row.senderDid, recipient: row.recipientDid })) + "</pre></div>" +
-        "<div class='detail-box'><h3>" + escapeHtml(t("execution")) + "</h3><pre>" + escapeHtml(t("executionBody", { state: row.deliveryState, leaseUntil: row.leaseUntil || t("none"), priorityScore: row.priorityScore })) + "</pre></div>" +
-        "<div class='detail-box'><h3>" + escapeHtml(t("credits")) + "</h3><pre>" + escapeHtml(t("creditsBody", { postage: row.postageCredits })) + "</pre></div>" +
-        "<div class='detail-box'><h3>" + escapeHtml(t("body")) + "</h3><pre>" + escapeHtml(JSON.stringify(raw, null, 2)) + "</pre></div>" +
+      el("detail").innerHTML = renderSemanticMessage(row) +
+        renderOperationalPanels(row) +
+        renderRawEnvelope(row) +
         "<div class='actions'><button class='action' id='claimSelected'>" + escapeHtml(t("claim")) + "</button><button class='action secondary' id='ackSelected'>" + escapeHtml(t("ack")) + "</button><button class='action danger' id='rejectSelected'>" + escapeHtml(t("reject")) + "</button></div>";
       el("claimSelected").onclick = () => claimSelected();
       el("ackSelected").onclick = () => ackSelected("acked");
       el("rejectSelected").onclick = () => ackSelected("rejected");
+    }
+
+    function renderSemanticMessage(row) {
+      const raw = messageRaw(row);
+      const body = messageBody(raw);
+      const type = raw.type || row.message?.type || t("unknown");
+      const goal = body.goal || body.objective || raw.subject || t("semanticUnavailable");
+      const knownFields = new Set(["goal", "objective", "channel", "requestedAction", "safetyNote", "humanRequest"]);
+      const metaItems = [
+        { label: t("messageType"), value: type },
+        { label: t("channel"), value: body.channel },
+        { label: t("requestedAction"), value: body.requestedAction },
+        { label: t("thread"), value: raw.thread }
+      ];
+      const extraItems = Object.entries(body)
+        .filter(([key, value]) => !knownFields.has(key) && fieldText(value))
+        .map(([key, value]) => ({ label: key, value }));
+      return "<div class='detail-box semantic-task'>" +
+        "<div class='semantic-head'><span class='chip teal'>" + escapeHtml(type) + "</span>" + (body.channel ? "<span class='chip'>" + escapeHtml(shortValue(body.channel, 36)) + "</span>" : "") + "</div>" +
+        "<h3>" + escapeHtml(t("taskGoal")) + "</h3>" +
+        "<p class='semantic-goal'>" + escapeHtml(fieldText(goal)) + "</p>" +
+        renderKv(metaItems) +
+        (body.safetyNote ? "<h4>" + escapeHtml(t("safetyBoundary")) + "</h4><div class='semantic-note'>" + escapeHtml(fieldText(body.safetyNote)) + "</div>" : "") +
+        (body.humanRequest ? "<h4>" + escapeHtml(t("humanRequest")) + "</h4><div class='semantic-quote'>" + escapeHtml(fieldText(body.humanRequest)) + "</div>" : "") +
+        (extraItems.length ? "<h4>" + escapeHtml(t("extraFields")) + "</h4>" + renderKv(extraItems) : "") +
+        "</div>";
+    }
+
+    function renderOperationalPanels(row) {
+      return "<div class='detail-box'><h3>" + escapeHtml(t("routeAndSignature")) + "</h3>" + renderKv([
+          { label: t("relayStatus"), value: t("acceptedByRelay") },
+          { label: t("sender"), value: row.senderDid },
+          { label: t("recipient"), value: row.recipientDid }
+        ]) + "</div>" +
+        "<div class='detail-box'><h3>" + escapeHtml(t("execution")) + "</h3>" + renderKv([
+          { label: t("deliveryState"), value: row.deliveryState },
+          { label: t("leaseUntil"), value: row.leaseUntil || t("none") },
+          { label: t("priorityScore"), value: row.priorityScore }
+        ]) + "</div>" +
+        "<div class='detail-box'><h3>" + escapeHtml(t("credits")) + "</h3>" + renderKv([
+          { label: t("postage"), value: row.postageCredits },
+          { label: t("settlement"), value: t("settlementHint") }
+        ]) + "</div>";
+    }
+
+    function renderRawEnvelope(row) {
+      const raw = messageRaw(row);
+      return "<div class='detail-box'><details class='raw-envelope'><summary>" + escapeHtml(t("rawEnvelope")) + "</summary><pre>" + escapeHtml(JSON.stringify(raw, null, 2)) + "</pre></details></div>";
+    }
+
+    function renderKv(items) {
+      const visible = items.filter((item) => fieldText(item.value));
+      if (!visible.length) return "";
+      return "<dl class='kv-grid'>" + visible.map((item) =>
+        "<div><dt>" + escapeHtml(item.label) + "</dt><dd>" + escapeHtml(fieldText(item.value)) + "</dd></div>"
+      ).join("") + "</dl>";
+    }
+
+    function messageSummary(row) {
+      const raw = messageRaw(row);
+      const body = messageBody(raw);
+      return shortValue(body.goal || body.objective || raw.subject || row.message?.thread || row.message?.type || t("noGoal"), 150);
+    }
+
+    function messageRaw(row) {
+      const raw = row.message?.raw;
+      return isPlainObject(raw) ? raw : {};
+    }
+
+    function messageBody(raw) {
+      return isPlainObject(raw.body) ? raw.body : {};
+    }
+
+    function isPlainObject(value) {
+      return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+    }
+
+    function fieldText(value) {
+      if (value === undefined || value === null || value === "") return "";
+      if (typeof value === "string") return value;
+      if (typeof value === "number" || typeof value === "boolean") return String(value);
+      return JSON.stringify(value, null, 2);
+    }
+
+    function shortValue(value, maxLength) {
+      const text = fieldText(value).replace(/\\s+/g, " ").trim();
+      if (text.length <= maxLength) return text;
+      return text.slice(0, Math.max(0, maxLength - 3)) + "...";
     }
 
     async function claimSelected() {
