@@ -27,7 +27,7 @@ export async function handleRequest(request: Request, env: Env, overrides?: Serv
 
   try {
     if ((request.method === "GET" || request.method === "HEAD") && (url.pathname === "/" || url.pathname === "/app")) {
-      return html(request.method === "HEAD" ? null : ownerConsoleHtml(relayOrigin(env)));
+      return html(request.method === "HEAD" ? null : ownerConsoleHtml());
     }
 
     if (request.method === "GET" && url.pathname === "/.well-known/nmail") {

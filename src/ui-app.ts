@@ -1,4 +1,16 @@
-export function ownerConsoleHtml(relayOrigin: string): string {
+const SKILL_VERSION = "v0.1.3";
+const SKILL_REF = `https://github.com/Airine/nerva-mail/tree/${SKILL_VERSION}/skills/nerva-mail`;
+const NPX_AUTH_GENERATE = `npx --package github:Airine/nerva-mail#${SKILL_VERSION} nmail auth generate --name <agent-name>`;
+const NPX_AUTH_LOGIN = `npx --package github:Airine/nerva-mail#${SKILL_VERSION} nmail auth login --code <code>`;
+const NPX_MAIL_INBOX = `npx --package github:Airine/nerva-mail#${SKILL_VERSION} nmail mail inbox`;
+const INSTRUCTION_COMMAND_ZH = `使用 Nerva Mail skill：${SKILL_REF}。如果你还没有生产地址，先用 Nerva 托管身份：${NPX_AUTH_GENERATE}。签我的登录 CODE：${NPX_AUTH_LOGIN}。查收任务：${NPX_MAIL_INBOX}。`;
+const INSTRUCTION_COMMAND_EN = `Use the Nerva Mail skill: ${SKILL_REF}. If you do not have a production address yet, first create a Nerva-hosted identity: ${NPX_AUTH_GENERATE}. Sign my code with: ${NPX_AUTH_LOGIN}. Check tasks with: ${NPX_MAIL_INBOX}.`;
+
+function escapeHtmlText(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+export function ownerConsoleHtml(): string {
   return `<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -898,7 +910,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         <div class="agent-instruction">
           <strong data-i18n="instructionTitle">发给你的 Agent</strong>
           <p data-i18n="instructionBody">让 Agent 安装 Nerva Mail skill，并在你分享登录 CODE 时调用 CLI 签名。</p>
-          <code data-i18n="instructionCommand">使用 Nerva Mail skill：https://github.com/Airine/nerva-mail/tree/v0.1.3/skills/nerva-mail。如果你还没有生产地址，先用 Nerva 托管身份：npx --package github:Airine/nerva-mail#v0.1.3 nmail auth generate --name &lt;agent-name&gt;。签我的登录 CODE：npx --package github:Airine/nerva-mail#v0.1.3 nmail auth login --code &lt;code&gt;。查收任务：npx --package github:Airine/nerva-mail#v0.1.3 nmail mail inbox。</code>
+          <code data-i18n="instructionCommand">${escapeHtmlText(INSTRUCTION_COMMAND_ZH)}</code>
         </div>
       </div>
     </section>
@@ -948,7 +960,6 @@ export function ownerConsoleHtml(relayOrigin: string): string {
   </dialog>
 
   <script>
-    const relayOrigin = ${JSON.stringify(relayOrigin)};
     const i18n = {
       zh: {
         documentTitle: "Nerva Mail 主控台",
@@ -974,7 +985,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         loginNotice: "把 CODE 告诉你的 Agent；它签名后，这个页面会自动打开邮箱。",
         instructionTitle: "发给你的 Agent",
         instructionBody: "让 Agent 安装 Nerva Mail skill。你只需要告诉它短 CODE；地址、DID 和 CLI 参数由 Agent 自己处理。",
-        instructionCommand: "使用 Nerva Mail skill：https://github.com/Airine/nerva-mail/tree/v0.1.3/skills/nerva-mail。如果你还没有生产地址，先用 Nerva 托管身份：npx --package github:Airine/nerva-mail#v0.1.3 nmail auth generate --name <agent-name>。签我的登录 CODE：npx --package github:Airine/nerva-mail#v0.1.3 nmail auth login --code <code>。查收任务：npx --package github:Airine/nerva-mail#v0.1.3 nmail mail inbox。",
+        instructionCommand: ${JSON.stringify(INSTRUCTION_COMMAND_ZH)},
         consoleTitle: "Agent Mail 主控台",
         notSignedIn: "未登录",
         inboxMetric: "收件箱",
@@ -1071,7 +1082,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         loginNotice: "Tell your Agent the CODE; after it signs, this page will open the mailbox automatically.",
         instructionTitle: "Send this to your Agent",
         instructionBody: "Ask the Agent to install the Nerva Mail skill. You only need to share the short code; the Agent handles addresses, DIDs, and CLI flags.",
-        instructionCommand: "Use the Nerva Mail skill: https://github.com/Airine/nerva-mail/tree/v0.1.3/skills/nerva-mail. If you do not have a production address yet, first create a Nerva-hosted identity: npx --package github:Airine/nerva-mail#v0.1.3 nmail auth generate --name <agent-name>. Sign my code with: npx --package github:Airine/nerva-mail#v0.1.3 nmail auth login --code <code>. Check tasks with: npx --package github:Airine/nerva-mail#v0.1.3 nmail mail inbox.",
+        instructionCommand: ${JSON.stringify(INSTRUCTION_COMMAND_EN)},
         consoleTitle: "Agent Mail Owner Console",
         notSignedIn: "Not signed in",
         inboxMetric: "Inbox",
@@ -1179,6 +1190,16 @@ export function ownerConsoleHtml(relayOrigin: string): string {
         text = text.replaceAll("{" + name + "}", String(value ?? ""));
       }
       return text;
+    }
+
+    function assertI18nParity() {
+      const zhKeys = new Set(Object.keys(i18n.zh));
+      const enKeys = new Set(Object.keys(i18n.en));
+      const missingInEn = [...zhKeys].filter((key) => !enKeys.has(key));
+      const missingInZh = [...enKeys].filter((key) => !zhKeys.has(key));
+      if (missingInEn.length || missingInZh.length) {
+        console.error("i18n key mismatch between zh and en", { missingInEn, missingInZh });
+      }
     }
 
     function applyTranslations() {
@@ -1599,6 +1620,7 @@ export function ownerConsoleHtml(relayOrigin: string): string {
       }
     }
 
+    assertI18nParity();
     bindLanguageSwitches();
     applyTranslations();
     loadSession();
