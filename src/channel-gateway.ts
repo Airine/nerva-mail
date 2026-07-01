@@ -1,4 +1,4 @@
-import type { ChannelEgressRequest, ChannelEgressResult, Env } from "./types";
+import type { ChannelReadiness, ChannelEgressRequest, ChannelEgressResult, Env, Repository } from "./types";
 
 export class QueuedChannelGateway {
   async queueEgress(request: ChannelEgressRequest): Promise<ChannelEgressResult> {
@@ -26,6 +26,43 @@ export function channelGatewayDidFromEnvelope(body: Record<string, unknown>): st
   const channel = body.channel;
   if (!isPlainObject(channel)) return null;
   return typeof channel.gatewayDid === "string" ? channel.gatewayDid : null;
+}
+
+export async function channelReadiness(env: Env, repository: Repository): Promise<ChannelReadiness> {
+  const configuredGatewayDids = channelGatewayDids(env);
+  const gatewayConfigured = await hasRegisteredGateway(configuredGatewayDids, repository);
+  const emailInbound = gatewayConfigured && env.CHANNEL_EMAIL_INBOUND_ENABLED === "true"
+    ? "live"
+    : "unconfigured";
+
+  return {
+    gatewayConfigured,
+    transports: {
+      email: {
+        inbound: emailInbound,
+        outbound: "not_implemented"
+      },
+      slack: {
+        inbound: "not_implemented",
+        outbound: "not_implemented"
+      },
+      telegram: {
+        inbound: "not_implemented",
+        outbound: "not_implemented"
+      },
+      feishu: {
+        inbound: "not_implemented",
+        outbound: "not_implemented"
+      }
+    }
+  };
+}
+
+async function hasRegisteredGateway(gatewayDids: Set<string>, repository: Repository): Promise<boolean> {
+  for (const did of gatewayDids) {
+    if (await repository.getAgent(did)) return true;
+  }
+  return false;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

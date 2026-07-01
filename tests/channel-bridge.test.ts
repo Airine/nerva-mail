@@ -247,6 +247,15 @@ describe("channel bridge", () => {
     await expect(listResponse.json()).resolves.toMatchObject({
       ownerDid: owner.did,
       supportedTransports: ["email", "slack", "telegram", "feishu"],
+      readiness: {
+        gatewayConfigured: false,
+        transports: {
+          email: { inbound: "unconfigured", outbound: "not_implemented" },
+          slack: { inbound: "not_implemented", outbound: "not_implemented" },
+          telegram: { inbound: "not_implemented", outbound: "not_implemented" },
+          feishu: { inbound: "not_implemented", outbound: "not_implemented" }
+        }
+      },
       bindings: [expect.objectContaining({ id: created.binding.id, transport: "email" })],
       identities: []
     });
@@ -274,7 +283,7 @@ describe("channel bridge", () => {
     await expect(deleteResponse.json()).resolves.toEqual({ status: "deleted" });
   });
 
-  it("routes messages to synthetic recipients through email egress instead of mailbox delivery", async () => {
+  it("rejects synthetic email egress until a real outbound provider is implemented", async () => {
     const services = createTestServices();
     const owner = await generateDidKeyAgent("owner");
     await services.repository.upsertAgent(owner);
@@ -307,29 +316,13 @@ describe("channel bridge", () => {
       services
     );
 
-    expect(sendResponse.status).toBe(202);
-    const sent = await sendResponse.json() as {
-      messageId: string;
-      deliveries: Array<{ mailboxId: string }>;
-      egress: Array<{ recipientDid: string; transport: string; externalId: string; status: string }>;
-    };
-    expect(sent.deliveries).toEqual([]);
-    expect(sent.egress).toEqual([
-      {
-        recipientDid: syntheticDid,
-        transport: "email",
-        externalId: "alice@example.com",
-        status: "queued"
-      }
-    ]);
-    await expect(services.repository.getDelivery(syntheticDid, sent.messageId)).resolves.toBeNull();
-    expect(services.channelGateway.egress).toEqual([
-      expect.objectContaining({
-        messageId: sent.messageId,
-        recipientDid: syntheticDid,
-        identity: expect.objectContaining({ externalId: "alice@example.com" })
-      })
-    ]);
+    expect(sendResponse.status).toBe(501);
+    await expect(sendResponse.json()).resolves.toEqual({
+      error: "channel_egress_not_implemented",
+      recipientDid: syntheticDid,
+      transport: "email"
+    });
+    expect(services.channelGateway.egress).toEqual([]);
   });
 
   it("ingests Cloudflare routed email into the addressed agent mailbox", async () => {

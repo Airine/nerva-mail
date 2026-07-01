@@ -6,6 +6,9 @@ export interface Env {
   MAILBOX: DurableObjectNamespace;
   ADMIN_TOKEN?: string;
   CHANNEL_GATEWAY_DIDS?: string;
+  CHANNEL_EMAIL_INBOUND_ENABLED?: string;
+  CHANNEL_EMAIL_OUTBOUND_PROVIDER?: string;
+  CHANNEL_EMAIL_DNS_READY?: string;
   BLOB_PROVIDER?: "disabled" | "r2" | string;
   R2_ACCOUNT_ID?: string;
   R2_ACCESS_KEY_ID?: string;
@@ -137,6 +140,16 @@ export interface ChannelEgressResult {
   transport: ChannelTransport;
   externalId: string;
   status: "queued";
+}
+
+export type ChannelReadinessState = "live" | "unconfigured" | "not_implemented";
+
+export interface ChannelReadiness {
+  gatewayConfigured: boolean;
+  transports: Record<ChannelTransport, {
+    inbound: ChannelReadinessState;
+    outbound: ChannelReadinessState;
+  }>;
 }
 
 export interface BlobUrlRequest {

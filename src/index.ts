@@ -9,7 +9,7 @@ import {
   type ResolvedAddress
 } from "./address";
 import { DisabledBlobGateway, R2BlobGateway } from "./blob";
-import { channelGatewayDidFromEnvelope, channelGatewayDids, isAllowedChannelGateway, QueuedChannelGateway } from "./channel-gateway";
+import { channelGatewayDidFromEnvelope, channelGatewayDids, channelReadiness, isAllowedChannelGateway, QueuedChannelGateway } from "./channel-gateway";
 import { DurableObjectMailboxGateway } from "./mailbox-gateway";
 import { MailboxObject } from "./mailbox-object";
 import { D1Repository } from "./repository";
@@ -318,6 +318,7 @@ async function handleUiRoute(request: Request, env: Env, services: Services, url
     return json({
       ownerDid: session.did,
       supportedTransports: supportedChannelTransports(),
+      readiness: await channelReadiness(env, services.repository),
       bindings: await services.repository.listChannelBindings(session.did),
       identities: []
     });
@@ -626,6 +627,9 @@ async function sendMessage(body: Record<string, unknown>, senderDid: string, ser
   for (const recipientDid of to) {
     const identity = syntheticRecipients.get(recipientDid);
     if (identity) {
+      if (identity.transport === "email" && !emailOutboundImplemented(env)) {
+        return json({ error: "channel_egress_not_implemented", recipientDid, transport: identity.transport }, 501);
+      }
       egress.push(await services.channelGateway.queueEgress({
         messageId,
         senderDid: from,
@@ -904,6 +908,10 @@ function parseChannelTransport(value: unknown): ChannelTransport {
 
 function supportedChannelTransports(): ChannelTransport[] {
   return ["email", "slack", "telegram", "feishu"];
+}
+
+function emailOutboundImplemented(_env: Env): boolean {
+  return false;
 }
 
 function firstChannelGatewayDid(env: Env): string | null {
