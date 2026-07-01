@@ -331,6 +331,18 @@ export function ownerConsoleHtml(): string {
       background: var(--risk-med-bg);
       color: var(--risk-med);
     }
+    .chip.channel {
+      background: var(--info-dim);
+      color: var(--info);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--info), transparent 72%);
+    }
+    .channel-box {
+      border-color: color-mix(in srgb, var(--info), transparent 72%);
+    }
+    .channel-reply {
+      border-left-color: var(--info);
+      color: color-mix(in srgb, var(--info), #1b1e24 12%);
+    }
     .mail-type {
       display: inline-flex;
       align-items: center;
@@ -1056,7 +1068,21 @@ export function ownerConsoleHtml(): string {
         waitingSignature: "正在等待 Agent 签名。页面会自动继续。",
         codeInvalid: "这个登录 CODE 已失效。请重新生成。",
         codeExpired: "这个登录 CODE 已过期。请重新生成。",
-        retrying: "连接中断，正在重试..."
+        retrying: "连接中断，正在重试...",
+        channelPane: "外部渠道",
+        channelTransport: "渠道类型",
+        channelDirection: "方向",
+        channelInbound: "外部来信",
+        channelOutbound: "对外发送",
+        channelExternalFrom: "外部发件人",
+        channelExternalTo: "外部收件地址",
+        channelThread: "外部线程",
+        channelGateway: "网关",
+        channelReplyHint: "你的回复会通过 {transport} 发送给 {address}。",
+        transport_email: "邮件",
+        transport_slack: "Slack",
+        transport_telegram: "Telegram",
+        transport_feishu: "飞书"
       },
       en: {
         documentTitle: "Agent Mail Owner Console",
@@ -1153,7 +1179,21 @@ export function ownerConsoleHtml(): string {
         waitingSignature: "Waiting for Agent signature. This page will continue automatically.",
         codeInvalid: "This login code is no longer valid. Create a new code.",
         codeExpired: "This login code expired. Create a new code.",
-        retrying: "Connection interrupted. Retrying..."
+        retrying: "Connection interrupted. Retrying...",
+        channelPane: "External channel",
+        channelTransport: "Transport",
+        channelDirection: "Direction",
+        channelInbound: "Inbound",
+        channelOutbound: "Outbound",
+        channelExternalFrom: "External sender",
+        channelExternalTo: "External recipient",
+        channelThread: "External thread",
+        channelGateway: "Gateway",
+        channelReplyHint: "Your reply will be sent to {address} via {transport}.",
+        transport_email: "Email",
+        transport_slack: "Slack",
+        transport_telegram: "Telegram",
+        transport_feishu: "Feishu"
       }
     };
     const state = { locale: initialLocale(), session: null, mailboxId: null, messages: [], selected: null, challenge: null, loginPollTimer: null };
@@ -1373,8 +1413,12 @@ export function ownerConsoleHtml(): string {
         const channel = shortValue(body.channel, 28);
         const action = shortValue(body.requestedAction, 36);
         const summary = messageSummary(row);
+        const bridge = messageChannel(row);
+        const bridgeChip = bridge
+          ? "<span class='chip channel'>" + escapeHtml(shortValue(channelChipText(bridge), 32)) + "</span>"
+          : "";
         button.title = row.senderDid || "";
-        button.innerHTML = "<div><span class='mail-type'>" + escapeHtml(type) + "</span><h3>" + escapeHtml(summary) + "</h3><p>" + escapeHtml(t("mailFrom", { sender: displayIdentity(row.senderDid) })) + " · " + escapeHtml(t("mailState", { state: row.deliveryState })) + " · " + escapeHtml(t("mailPostage", { postage: row.postageCredits })) + "</p><div class='chips'><span class='chip teal'>" + escapeHtml(row.deliveryState) + "</span>" + (channel ? "<span class='chip'>" + escapeHtml(channel) + "</span>" : "") + (action ? "<span class='chip'>" + escapeHtml(action) + "</span>" : "") + "<span class='chip amber'>" + escapeHtml(t("scoreChip", { score: row.priorityScore })) + "</span></div></div><div class='score'>" + row.postageCredits + "</div>";
+        button.innerHTML = "<div><span class='mail-type'>" + escapeHtml(type) + "</span><h3>" + escapeHtml(summary) + "</h3><p>" + escapeHtml(t("mailFrom", { sender: displayIdentity(row.senderDid) })) + " · " + escapeHtml(t("mailState", { state: row.deliveryState })) + " · " + escapeHtml(t("mailPostage", { postage: row.postageCredits })) + "</p><div class='chips'><span class='chip teal'>" + escapeHtml(row.deliveryState) + "</span>" + bridgeChip + (channel ? "<span class='chip'>" + escapeHtml(channel) + "</span>" : "") + (action ? "<span class='chip'>" + escapeHtml(action) + "</span>" : "") + "<span class='chip amber'>" + escapeHtml(t("scoreChip", { score: row.priorityScore })) + "</span></div></div><div class='score'>" + row.postageCredits + "</div>";
         button.onclick = () => selectMessage(row, button);
         container.appendChild(button);
         if (index === 0) selectMessage(row, button);
@@ -1386,6 +1430,7 @@ export function ownerConsoleHtml(): string {
       document.querySelectorAll(".mail-row").forEach((node) => node.classList.remove("active"));
       button.classList.add("active");
       el("detail").innerHTML = renderSemanticMessage(row) +
+        renderChannelPanel(row) +
         renderOperationalPanels(row) +
         renderRawEnvelope(row) +
         "<div class='actions'><button class='action' id='claimSelected'>" + escapeHtml(t("claim")) + "</button><button class='action secondary' id='ackSelected'>" + escapeHtml(t("ack")) + "</button><button class='action danger' id='rejectSelected'>" + escapeHtml(t("reject")) + "</button></div>";
@@ -1463,6 +1508,68 @@ export function ownerConsoleHtml(): string {
 
     function messageBody(raw) {
       return isPlainObject(raw.body) ? raw.body : {};
+    }
+
+    function messageChannel(row) {
+      const channel = messageRaw(row).channel;
+      if (!isPlainObject(channel) || typeof channel.transport !== "string") return null;
+      return channel;
+    }
+
+    function channelPartyLabel(party) {
+      if (!isPlainObject(party)) return typeof party === "string" ? party : "";
+      return party.displayName || party.address || party.id || "";
+    }
+
+    function channelPartyAddress(party) {
+      if (!isPlainObject(party)) return typeof party === "string" ? party : "";
+      return party.address || party.id || "";
+    }
+
+    function channelPartyFull(party) {
+      const name = isPlainObject(party) ? party.displayName : "";
+      const address = channelPartyAddress(party);
+      if (name && address && name !== address) return name + " <" + address + ">";
+      return address || name || "";
+    }
+
+    function transportLabel(transport) {
+      const key = "transport_" + String(transport || "").toLowerCase();
+      const label = i18n[state.locale]?.[key] ?? i18n.zh[key];
+      return label ?? String(transport || t("unknown"));
+    }
+
+    function channelChipText(channel) {
+      const party = channel.direction === "outbound"
+        ? channelPartyLabel(channel.externalTo)
+        : channelPartyLabel(channel.externalFrom);
+      const transport = transportLabel(channel.transport);
+      return party ? transport + " · " + party : transport;
+    }
+
+    function renderChannelPanel(row) {
+      const channel = messageChannel(row);
+      if (!channel) return "";
+      const outbound = channel.direction === "outbound";
+      const directionText = outbound ? t("channelOutbound") : t("channelInbound");
+      const items = [
+        { label: t("channelTransport"), value: transportLabel(channel.transport) },
+        { label: t("channelDirection"), value: directionText },
+        { label: t("channelExternalFrom"), value: channelPartyFull(channel.externalFrom) },
+        { label: t("channelExternalTo"), value: channelPartyFull(channel.externalTo) },
+        { label: t("channelThread"), value: channel.externalThreadId },
+        { label: t("channelGateway"), value: displayIdentity(channel.gatewayDid) }
+      ];
+      const replyTarget = channelPartyAddress(outbound ? channel.externalTo : channel.externalFrom);
+      const replyHint = !outbound && replyTarget
+        ? "<div class='semantic-quote channel-reply'>" + escapeHtml(t("channelReplyHint", { address: replyTarget, transport: transportLabel(channel.transport) })) + "</div>"
+        : "";
+      return "<div class='detail-box channel-box'>" +
+        "<div class='semantic-head'><span class='chip channel'>" + escapeHtml(transportLabel(channel.transport)) + "</span><span class='chip'>" + escapeHtml(directionText) + "</span></div>" +
+        "<h3>" + escapeHtml(t("channelPane")) + "</h3>" +
+        renderKv(items) +
+        replyHint +
+        "</div>";
     }
 
     function isPlainObject(value) {
