@@ -8,5 +8,8 @@ export const TABLES = [
   "postage_holds",
   "blob_uploads",
   "login_challenges",
-  "web_sessions"
+  "web_sessions",
+  "channel_identity",
+  "channel_thread",
+  "channel_binding"
 ] as const;

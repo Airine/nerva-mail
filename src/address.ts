@@ -1,6 +1,17 @@
+import { base64UrlEncode } from "./utils/crypto";
+
 const NERVA_ADDRESS_DOMAIN = "nervafs.xyz";
 const NERVA_HOSTED_DID_HOST = "mail.nervafs.xyz";
 const NERVA_HOSTED_AGENT_PREFIX = `did:web:${NERVA_HOSTED_DID_HOST}:agents:`;
+const NERVA_SYNTHETIC_DID_PREFIX = `did:web:${NERVA_HOSTED_DID_HOST}:ext:`;
+
+export type ChannelTransport = "email" | "slack" | "telegram" | "feishu";
+
+export interface SyntheticDidParts {
+  did: string;
+  transport: ChannelTransport;
+  hash: string;
+}
 
 export interface ResolvedAddress {
   input: string;
@@ -41,6 +52,37 @@ export function didToNervaAddress(did: string): string | null {
   return `${safeDecode(tail)}@${NERVA_ADDRESS_DOMAIN}`;
 }
 
+export async function createSyntheticDid(transport: ChannelTransport, externalId: string): Promise<string> {
+  const normalized = normalizeExternalId(transport, externalId);
+  if (!normalized) {
+    throw new Error("external_id_required");
+  }
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${transport}:${normalized}`));
+  return `${NERVA_SYNTHETIC_DID_PREFIX}${transport}:${base64UrlEncode(new Uint8Array(digest))}`;
+}
+
+export function parseSyntheticDid(did: string): SyntheticDidParts | null {
+  if (!did.startsWith(NERVA_SYNTHETIC_DID_PREFIX)) return null;
+  const tail = did.slice(NERVA_SYNTHETIC_DID_PREFIX.length);
+  const [transport, hash, ...rest] = tail.split(":");
+  if (rest.length || !isChannelTransport(transport) || !hash || !/^[A-Za-z0-9_-]+$/.test(hash)) {
+    return null;
+  }
+  return { did, transport, hash };
+}
+
+export function isSyntheticDid(did: string): boolean {
+  return Boolean(parseSyntheticDid(did));
+}
+
+export function normalizeExternalId(transport: ChannelTransport, externalId: string): string {
+  const value = externalId.trim();
+  if (transport === "email") {
+    return value.toLowerCase();
+  }
+  return value;
+}
+
 export function isNervaAddress(input: string): boolean {
   return Boolean(parseNervaAddress(input.trim()));
 }
@@ -53,6 +95,10 @@ function parseNervaAddress(value: string): { local: string; domain: string } | n
   if (domain !== NERVA_ADDRESS_DOMAIN) return null;
   if (!/^[A-Za-z0-9._~-]+$/.test(local)) return null;
   return { local, domain };
+}
+
+function isChannelTransport(value: string | undefined): value is ChannelTransport {
+  return value === "email" || value === "slack" || value === "telegram" || value === "feishu";
 }
 
 function safeDecode(value: string): string {

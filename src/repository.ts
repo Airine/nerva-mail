@@ -1,5 +1,9 @@
 import type {
   AgentRecord,
+  ChannelBindingInput,
+  ChannelBindingRecord,
+  ChannelIdentityRecord,
+  ChannelThreadRecord,
   CreditAccount,
   DeliveryRecord,
   LoginChallengeRecord,
@@ -51,6 +55,116 @@ export class D1Repository implements Repository {
       .bind(did, did)
       .all<AgentRow>();
     return (result.results ?? []).map(agentFromRow);
+  }
+
+  async upsertChannelIdentity(identity: ChannelIdentityRecord): Promise<void> {
+    const now = identity.updatedAt ?? Date.now();
+    await this.db.prepare(`
+      INSERT INTO channel_identity (synthetic_did, transport, external_id, display_name, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(synthetic_did) DO UPDATE SET
+        transport = excluded.transport,
+        external_id = excluded.external_id,
+        display_name = excluded.display_name,
+        updated_at = excluded.updated_at
+    `).bind(
+      identity.syntheticDid,
+      identity.transport,
+      identity.externalId,
+      identity.displayName ?? null,
+      identity.createdAt ?? now,
+      now
+    ).run();
+  }
+
+  async getChannelIdentityBySyntheticDid(syntheticDid: string): Promise<ChannelIdentityRecord | null> {
+    const row = await this.db.prepare("SELECT * FROM channel_identity WHERE synthetic_did = ?")
+      .bind(syntheticDid)
+      .first<ChannelIdentityRow>();
+    return row ? channelIdentityFromRow(row) : null;
+  }
+
+  async getChannelIdentityByExternalId(transport: ChannelIdentityRecord["transport"], externalId: string): Promise<ChannelIdentityRecord | null> {
+    const row = await this.db.prepare("SELECT * FROM channel_identity WHERE transport = ? AND external_id = ?")
+      .bind(transport, externalId)
+      .first<ChannelIdentityRow>();
+    return row ? channelIdentityFromRow(row) : null;
+  }
+
+  async upsertChannelThread(thread: ChannelThreadRecord): Promise<void> {
+    const now = thread.updatedAt ?? Date.now();
+    await this.db.prepare(`
+      INSERT INTO channel_thread (nmail_thread, transport, external_thread_id, agent_did, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(nmail_thread) DO UPDATE SET
+        transport = excluded.transport,
+        external_thread_id = excluded.external_thread_id,
+        agent_did = excluded.agent_did,
+        updated_at = excluded.updated_at
+    `).bind(
+      thread.nmailThread,
+      thread.transport,
+      thread.externalThreadId,
+      thread.agentDid,
+      thread.createdAt ?? now,
+      now
+    ).run();
+  }
+
+  async getChannelThreadByExternal(transport: ChannelThreadRecord["transport"], externalThreadId: string, agentDid: string): Promise<ChannelThreadRecord | null> {
+    const row = await this.db.prepare("SELECT * FROM channel_thread WHERE transport = ? AND external_thread_id = ? AND agent_did = ?")
+      .bind(transport, externalThreadId, agentDid)
+      .first<ChannelThreadRow>();
+    return row ? channelThreadFromRow(row) : null;
+  }
+
+  async getChannelThreadByNmailThread(nmailThread: string): Promise<ChannelThreadRecord | null> {
+    const row = await this.db.prepare("SELECT * FROM channel_thread WHERE nmail_thread = ?")
+      .bind(nmailThread)
+      .first<ChannelThreadRow>();
+    return row ? channelThreadFromRow(row) : null;
+  }
+
+  async createChannelBinding(input: ChannelBindingInput): Promise<ChannelBindingRecord> {
+    const now = input.updatedAt ?? Date.now();
+    const binding: ChannelBindingRecord = {
+      id: crypto.randomUUID(),
+      ownerDid: input.ownerDid,
+      transport: input.transport,
+      workspaceOrChat: input.workspaceOrChat,
+      agentDid: input.agentDid,
+      displayName: input.displayName,
+      createdAt: input.createdAt ?? now,
+      updatedAt: now
+    };
+    await this.db.prepare(`
+      INSERT INTO channel_binding (id, owner_did, transport, workspace_or_chat, agent_did, display_name, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      binding.id,
+      binding.ownerDid,
+      binding.transport,
+      binding.workspaceOrChat,
+      binding.agentDid,
+      binding.displayName ?? null,
+      binding.createdAt,
+      binding.updatedAt
+    ).run();
+    return binding;
+  }
+
+  async listChannelBindings(ownerDid: string): Promise<ChannelBindingRecord[]> {
+    const result = await this.db.prepare("SELECT * FROM channel_binding WHERE owner_did = ? ORDER BY updated_at DESC")
+      .bind(ownerDid)
+      .all<ChannelBindingRow>();
+    return (result.results ?? []).map(channelBindingFromRow);
+  }
+
+  async deleteChannelBinding(id: string, ownerDid: string): Promise<boolean> {
+    const result = await this.db.prepare("DELETE FROM channel_binding WHERE id = ? AND owner_did = ?")
+      .bind(id, ownerDid)
+      .run();
+    return Number(result.meta.changes ?? 0) > 0;
   }
 
   async createMessage(message: MessageRecord): Promise<void> {
@@ -358,6 +472,35 @@ interface WebSessionRow {
   revoked_at: number | null;
 }
 
+interface ChannelIdentityRow {
+  synthetic_did: string;
+  transport: ChannelIdentityRecord["transport"];
+  external_id: string;
+  display_name: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+interface ChannelThreadRow {
+  nmail_thread: string;
+  transport: ChannelThreadRecord["transport"];
+  external_thread_id: string;
+  agent_did: string;
+  created_at: number;
+  updated_at: number;
+}
+
+interface ChannelBindingRow {
+  id: string;
+  owner_did: string;
+  transport: ChannelBindingRecord["transport"];
+  workspace_or_chat: string;
+  agent_did: string;
+  display_name: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
 function agentFromRow(row: AgentRow): AgentRecord {
   return {
     did: row.did,
@@ -435,5 +578,40 @@ function webSessionFromRow(row: WebSessionRow): WebSessionRecord {
     createdAt: row.created_at,
     expiresAt: row.expires_at,
     revokedAt: row.revoked_at ?? undefined
+  };
+}
+
+function channelIdentityFromRow(row: ChannelIdentityRow): ChannelIdentityRecord {
+  return {
+    syntheticDid: row.synthetic_did,
+    transport: row.transport,
+    externalId: row.external_id,
+    displayName: row.display_name ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function channelThreadFromRow(row: ChannelThreadRow): ChannelThreadRecord {
+  return {
+    nmailThread: row.nmail_thread,
+    transport: row.transport,
+    externalThreadId: row.external_thread_id,
+    agentDid: row.agent_did,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function channelBindingFromRow(row: ChannelBindingRow): ChannelBindingRecord {
+  return {
+    id: row.id,
+    ownerDid: row.owner_did,
+    transport: row.transport,
+    workspaceOrChat: row.workspace_or_chat,
+    agentDid: row.agent_did,
+    displayName: row.display_name ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
   };
 }

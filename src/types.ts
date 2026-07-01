@@ -1,8 +1,11 @@
+import type { ChannelTransport } from "./address";
+
 export interface Env {
   DB: D1Database;
   BLOBS?: R2Bucket;
   MAILBOX: DurableObjectNamespace;
   ADMIN_TOKEN?: string;
+  CHANNEL_GATEWAY_DIDS?: string;
   BLOB_PROVIDER?: "disabled" | "r2" | string;
   R2_ACCOUNT_ID?: string;
   R2_ACCESS_KEY_ID?: string;
@@ -82,6 +85,60 @@ export interface WebSessionRecord {
   revokedAt?: number | undefined;
 }
 
+export interface ChannelIdentityRecord {
+  syntheticDid: string;
+  transport: ChannelTransport;
+  externalId: string;
+  displayName?: string | undefined;
+  createdAt?: number | undefined;
+  updatedAt?: number | undefined;
+}
+
+export interface ChannelThreadRecord {
+  nmailThread: string;
+  transport: ChannelTransport;
+  externalThreadId: string;
+  agentDid: string;
+  createdAt?: number | undefined;
+  updatedAt?: number | undefined;
+}
+
+export interface ChannelBindingRecord {
+  id: string;
+  ownerDid: string;
+  transport: ChannelTransport;
+  workspaceOrChat: string;
+  agentDid: string;
+  displayName?: string | undefined;
+  createdAt?: number | undefined;
+  updatedAt?: number | undefined;
+}
+
+export interface ChannelBindingInput {
+  ownerDid: string;
+  transport: ChannelTransport;
+  workspaceOrChat: string;
+  agentDid: string;
+  displayName?: string | undefined;
+  createdAt?: number | undefined;
+  updatedAt?: number | undefined;
+}
+
+export interface ChannelEgressRequest {
+  messageId: string;
+  senderDid: string;
+  recipientDid: string;
+  identity: ChannelIdentityRecord;
+  raw: Record<string, unknown>;
+}
+
+export interface ChannelEgressResult {
+  recipientDid: string;
+  transport: ChannelTransport;
+  externalId: string;
+  status: "queued";
+}
+
 export interface BlobUrlRequest {
   cid: string;
   mediaType?: string | undefined;
@@ -120,6 +177,15 @@ export interface Repository {
   getWebSessionByTokenHash(tokenHash: string): Promise<WebSessionRecord | null>;
   revokeWebSession(tokenHash: string, revokedAt: number): Promise<void>;
   listAgentsForDid(did: string): Promise<AgentRecord[]>;
+  upsertChannelIdentity(identity: ChannelIdentityRecord): Promise<void>;
+  getChannelIdentityBySyntheticDid(syntheticDid: string): Promise<ChannelIdentityRecord | null>;
+  getChannelIdentityByExternalId(transport: ChannelTransport, externalId: string): Promise<ChannelIdentityRecord | null>;
+  upsertChannelThread(thread: ChannelThreadRecord): Promise<void>;
+  getChannelThreadByExternal(transport: ChannelTransport, externalThreadId: string, agentDid: string): Promise<ChannelThreadRecord | null>;
+  getChannelThreadByNmailThread(nmailThread: string): Promise<ChannelThreadRecord | null>;
+  createChannelBinding(binding: ChannelBindingInput): Promise<ChannelBindingRecord>;
+  listChannelBindings(ownerDid: string): Promise<ChannelBindingRecord[]>;
+  deleteChannelBinding(id: string, ownerDid: string): Promise<boolean>;
 }
 
 export interface MailboxGateway {
@@ -135,15 +201,21 @@ export interface BlobGateway {
   createDownloadUrl(key: string): Promise<BlobUrlResponse>;
 }
 
+export interface ChannelGateway {
+  queueEgress(request: ChannelEgressRequest): Promise<ChannelEgressResult>;
+}
+
 export interface Services {
   repository: Repository;
   mailbox: MailboxGateway;
   blob: BlobGateway;
+  channelGateway: ChannelGateway;
   clock: () => number;
 }
 
 export interface TestServices extends Services {
   env: Env;
+  channelGateway: ChannelGateway & { egress?: ChannelEgressRequest[] };
 }
 
 export interface SignedIdentity {

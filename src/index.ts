@@ -1,6 +1,15 @@
 import { AuthError, requireAdmin, requireSignedIdentity } from "./auth";
-import { didToNervaAddress, resolveIdentityAddress, type ResolvedAddress } from "./address";
+import {
+  createSyntheticDid,
+  didToNervaAddress,
+  isSyntheticDid,
+  normalizeExternalId,
+  resolveIdentityAddress,
+  type ChannelTransport,
+  type ResolvedAddress
+} from "./address";
 import { DisabledBlobGateway, R2BlobGateway } from "./blob";
+import { channelGatewayDidFromEnvelope, channelGatewayDids, isAllowedChannelGateway, QueuedChannelGateway } from "./channel-gateway";
 import { DurableObjectMailboxGateway } from "./mailbox-gateway";
 import { MailboxObject } from "./mailbox-object";
 import { D1Repository } from "./repository";
@@ -17,8 +26,104 @@ const UI_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 export default {
   fetch(request: Request, env: Env, _ctx?: ExecutionContext): Promise<Response> {
     return handleRequest(request, env);
+  },
+  email(message: ForwardableEmailMessage, env: Env, _ctx: ExecutionContext): Promise<void> {
+    return handleEmail(message, env);
   }
 };
+
+export async function handleEmail(message: ForwardableEmailMessage, env: Env, overrides?: Services): Promise<void> {
+  const services = overrides ?? createServices(env);
+  const gatewayDid = firstChannelGatewayDid(env);
+  if (!gatewayDid) {
+    message.setReject("channel_gateway_required");
+    return;
+  }
+
+  let recipient: ResolvedAddress;
+  try {
+    recipient = resolveIdentityAddress(message.to);
+  } catch {
+    message.setReject("unsupported_recipient");
+    return;
+  }
+
+  const externalId = normalizeExternalId("email", emailAddress(message.from));
+  if (!externalId) {
+    message.setReject("sender_required");
+    return;
+  }
+
+  const syntheticDid = await createSyntheticDid("email", externalId);
+  const now = services.clock();
+  const displayName = emailDisplayName(message.headers.get("From") ?? message.from);
+  await services.repository.upsertChannelIdentity({
+    syntheticDid,
+    transport: "email",
+    externalId,
+    displayName,
+    createdAt: now,
+    updatedAt: now
+  });
+
+  const raw = await new Response(message.raw).text();
+  const humanRequest = extractEmailText(raw);
+  const externalMessageId = message.headers.get("Message-ID") ?? `email:${crypto.randomUUID()}`;
+  const externalThreadId = message.headers.get("In-Reply-To") ?? externalMessageId;
+  const subject = message.headers.get("Subject") ?? undefined;
+  const channel = {
+    version: "channel/0.1",
+    direction: "inbound",
+    transport: "email",
+    externalFrom: {
+      id: externalId,
+      address: externalId,
+      displayName
+    },
+    externalTo: {
+      address: message.to
+    },
+    externalThreadId,
+    externalMessageId,
+    gatewayDid,
+    gatewayKeyId: `${gatewayDid}#default`,
+    headers: {
+      messageId: message.headers.get("Message-ID") ?? undefined,
+      inReplyTo: message.headers.get("In-Reply-To") ?? undefined,
+      references: message.headers.get("References") ?? undefined,
+      subject
+    }
+  };
+  const nmailThread = `nthread:${await sha256Hex(`email:${recipient.did}:${externalThreadId}`)}`;
+  await services.repository.upsertChannelThread({
+    nmailThread,
+    transport: "email",
+    externalThreadId,
+    agentDid: recipient.did,
+    createdAt: now,
+    updatedAt: now
+  });
+
+  const response = await sendMessage({
+    type: "task.request",
+    from: syntheticDid,
+    to: [recipient.did],
+    thread: nmailThread,
+    subject,
+    channel,
+    body: {
+      goal: subject ?? humanRequest.slice(0, 120),
+      humanRequest
+    },
+    postage: { creditAmount: 0 },
+    attachments: []
+  }, gatewayDid, services, env);
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "email_ingress_failed" })) as { error?: string };
+    message.setReject(error.error ?? "email_ingress_failed");
+  }
+}
 
 export async function handleRequest(request: Request, env: Env, overrides?: Services): Promise<Response> {
   const services = overrides ?? createServices(env);
@@ -93,7 +198,7 @@ export async function handleRequest(request: Request, env: Env, overrides?: Serv
     if (request.method === "POST" && url.pathname === "/v0/messages") {
       const body = parseJson<Record<string, unknown>>(bodyText);
       const auth = await requireSignedIdentity(request, env, services.repository, bodyText, services.clock());
-      return await sendMessage(body, auth.did, services);
+      return await sendMessage(body, auth.did, services, env);
     }
 
     const mailboxMessagesMatch = url.pathname.match(/^\/v0\/mailboxes\/(.+)\/messages$/);
@@ -310,6 +415,60 @@ async function handleUiRoute(request: Request, env: Env, services: Services, url
     });
   }
 
+  if (request.method === "GET" && url.pathname === "/v0/ui/channels") {
+    const session = await requireUiSession(request, services);
+    return json({
+      ownerDid: session.did,
+      supportedTransports: supportedChannelTransports(),
+      bindings: await services.repository.listChannelBindings(session.did),
+      identities: []
+    });
+  }
+
+  if (request.method === "POST" && url.pathname === "/v0/ui/channels/identities/resolve") {
+    await requireUiSession(request, services);
+    const body = parseJson<{ transport?: string; externalId?: string; displayName?: string }>(bodyText);
+    const transport = parseChannelTransport(body.transport);
+    const externalId = normalizeExternalId(transport, stringValue(body.externalId, "external_id_required"));
+    const syntheticDid = await createSyntheticDid(transport, externalId);
+    const now = services.clock();
+    const existing = await services.repository.getChannelIdentityBySyntheticDid(syntheticDid);
+    const identity = {
+      syntheticDid,
+      transport,
+      externalId,
+      displayName: body.displayName?.trim() || existing?.displayName,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now
+    };
+    await services.repository.upsertChannelIdentity(identity);
+    return json({ identity });
+  }
+
+  if (request.method === "POST" && url.pathname === "/v0/ui/channels/bindings") {
+    const session = await requireUiSession(request, services);
+    const body = parseJson<{ transport?: string; workspaceOrChat?: string; agentDid?: string; displayName?: string }>(bodyText);
+    const agentDid = stringValue(body.agentDid, "agent_did_required");
+    requireMailboxOwner(session, agentDid);
+    const binding = await services.repository.createChannelBinding({
+      ownerDid: session.did,
+      transport: parseChannelTransport(body.transport),
+      workspaceOrChat: stringValue(body.workspaceOrChat, "workspace_or_chat_required"),
+      agentDid,
+      displayName: body.displayName?.trim() || undefined,
+      createdAt: services.clock(),
+      updatedAt: services.clock()
+    });
+    return json({ binding }, 201);
+  }
+
+  const uiChannelBindingMatch = url.pathname.match(/^\/v0\/ui\/channels\/bindings\/([^/]+)$/);
+  if (request.method === "DELETE" && uiChannelBindingMatch?.[1]) {
+    const session = await requireUiSession(request, services);
+    const deleted = await services.repository.deleteChannelBinding(decodeURIComponent(uiChannelBindingMatch[1]), session.did);
+    return deleted ? json({ status: "deleted" }) : json({ error: "channel_binding_not_found" }, 404);
+  }
+
   const mailboxMessagesMatch = url.pathname.match(/^\/v0\/ui\/mailboxes\/(.+)\/messages$/);
   if (request.method === "GET" && mailboxMessagesMatch?.[1]) {
     const session = await requireUiSession(request, services);
@@ -354,7 +513,7 @@ async function handleUiRoute(request: Request, env: Env, services: Services, url
     const session = await requireUiSession(request, services);
     const body = parseJson<Record<string, unknown>>(bodyText);
     if (typeof body.from === "string" && body.from !== session.did) throw new HttpError("sender_mismatch", 403);
-    return sendMessage({ ...body, from: session.did, type: body.type ?? "task.request" }, session.did, services);
+    return sendMessage({ ...body, from: session.did, type: body.type ?? "task.request" }, session.did, services, env);
   }
 
   const uiMessageMatch = url.pathname.match(/^\/v0\/ui\/messages\/(.+)$/);
@@ -409,23 +568,36 @@ function createServices(env: Env): Services {
     repository: new D1Repository(env.DB),
     mailbox: new DurableObjectMailboxGateway(env),
     blob: blobUploadsEnabled(env) ? new R2BlobGateway(env) : new DisabledBlobGateway(),
+    channelGateway: new QueuedChannelGateway(),
     clock: () => Date.now()
   };
 }
 
-async function sendMessage(body: Record<string, unknown>, senderDid: string, services: Services): Promise<Response> {
+async function sendMessage(body: Record<string, unknown>, senderDid: string, services: Services, env: Env): Promise<Response> {
   const type = stringField(body, "type");
   const fromAddress = resolveAddressOrHttpError(stringField(body, "from"));
   const toAddresses = arrayField(body, "to").map(resolveAddressOrHttpError);
   const from = fromAddress.did;
   const to = toAddresses.map((entry) => entry.did);
-  if (from !== senderDid) return json({ error: "sender_mismatch" }, 403);
+  if (!isAuthorizedMessageSender(from, senderDid, body, env)) {
+    return json({ error: isSyntheticDid(from) ? "synthetic_sender_forbidden" : "sender_mismatch" }, 403);
+  }
 
   const normalizedBody = normalizeAddressedMessage(body, fromAddress, toAddresses);
 
   const postageCredits = Number((normalizedBody.postage as { creditAmount?: number } | undefined)?.creditAmount ?? 0);
   if (!Number.isFinite(postageCredits) || postageCredits < 0) {
     return json({ error: "invalid_postage" }, 400);
+  }
+
+  const syntheticRecipients = new Map<string, NonNullable<Awaited<ReturnType<Services["repository"]["getChannelIdentityBySyntheticDid"]>>>>();
+  for (const recipientDid of to) {
+    if (!isSyntheticDid(recipientDid)) continue;
+    const identity = await services.repository.getChannelIdentityBySyntheticDid(recipientDid);
+    if (!identity) {
+      return json({ error: "channel_identity_not_found", recipientDid }, 404);
+    }
+    syntheticRecipients.set(recipientDid, identity);
   }
 
   const createdAt = Date.parse(String(normalizedBody.createdAt ?? "")) || services.clock();
@@ -435,7 +607,7 @@ async function sendMessage(body: Record<string, unknown>, senderDid: string, ser
   const message: MessageRecord = {
     messageId,
     type,
-    senderDid,
+    senderDid: from,
     recipientDids: to,
     thread: typeof normalizedBody.thread === "string" ? normalizedBody.thread : undefined,
     bodyObjectKey,
@@ -445,18 +617,30 @@ async function sendMessage(body: Record<string, unknown>, senderDid: string, ser
     expiresAt: typeof normalizedBody.expiresAt === "string" ? Date.parse(normalizedBody.expiresAt) : undefined
   };
 
-  await services.repository.holdPostage(senderDid, messageId, postageCredits);
+  await services.repository.holdPostage(from, messageId, postageCredits);
   await services.blob.putMessage(bodyObjectKey, rawJson);
   await services.repository.createMessage(message);
 
   const deliveries = [];
+  const egress = [];
   for (const recipientDid of to) {
+    const identity = syntheticRecipients.get(recipientDid);
+    if (identity) {
+      egress.push(await services.channelGateway.queueEgress({
+        messageId,
+        senderDid: from,
+        recipientDid,
+        identity,
+        raw: { ...normalizedBody, id: messageId, version: "nmail/0.1" }
+      }));
+      continue;
+    }
     const delivery: DeliveryRecord = {
       deliveryId: await messageIdFor({ messageId, recipientDid }),
       mailboxId: recipientDid,
       messageId,
       recipientDid,
-      senderDid,
+      senderDid: from,
       deliveryState: "available",
       cursor: "0",
       priorityScore: priorityScore(postageCredits),
@@ -468,7 +652,14 @@ async function sendMessage(body: Record<string, unknown>, senderDid: string, ser
     deliveries.push({ mailboxId: recipientDid, cursor });
   }
 
-  return json({ status: "accepted", messageId, deliveries }, 202);
+  return json({ status: "accepted", messageId, deliveries, egress }, 202);
+}
+
+function isAuthorizedMessageSender(from: string, signerDid: string, body: Record<string, unknown>, env: Env): boolean {
+  if (from === signerDid) return true;
+  if (!isSyntheticDid(from)) return false;
+  if (!isAllowedChannelGateway(env, signerDid)) return false;
+  return channelGatewayDidFromEnvelope(body) === signerDid;
 }
 
 function normalizeAddressedMessage(
@@ -695,6 +886,45 @@ function arrayField(body: Record<string, unknown>, key: string): string[] {
     throw new HttpError(`invalid_${key}`, 400);
   }
   return value as string[];
+}
+
+function stringValue(value: unknown, error: string): string {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new HttpError(error, 400);
+  }
+  return value.trim();
+}
+
+function parseChannelTransport(value: unknown): ChannelTransport {
+  if (value === "email" || value === "slack" || value === "telegram" || value === "feishu") {
+    return value;
+  }
+  throw new HttpError("unsupported_channel_transport", 400);
+}
+
+function supportedChannelTransports(): ChannelTransport[] {
+  return ["email", "slack", "telegram", "feishu"];
+}
+
+function firstChannelGatewayDid(env: Env): string | null {
+  return channelGatewayDids(env).values().next().value ?? null;
+}
+
+function emailAddress(value: string): string {
+  const match = value.match(/<([^>]+)>/);
+  return (match?.[1] ?? value).trim();
+}
+
+function emailDisplayName(value: string): string | undefined {
+  const trimmed = value.trim();
+  const match = trimmed.match(/^\s*"?([^"<]+?)"?\s*<[^>]+>\s*$/);
+  return match?.[1]?.trim() || undefined;
+}
+
+function extractEmailText(raw: string): string {
+  const normalized = raw.replaceAll("\r\n", "\n");
+  const separator = normalized.indexOf("\n\n");
+  return (separator >= 0 ? normalized.slice(separator + 2) : normalized).trim();
 }
 
 function parseJson<T>(bodyText: string): T {

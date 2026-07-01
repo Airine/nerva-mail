@@ -2,6 +2,13 @@ import type {
   AgentRecord,
   BlobUrlRequest,
   BlobUrlResponse,
+  ChannelBindingInput,
+  ChannelBindingRecord,
+  ChannelEgressRequest,
+  ChannelEgressResult,
+  ChannelGateway,
+  ChannelIdentityRecord,
+  ChannelThreadRecord,
   CreditAccount,
   DeliveryRecord,
   Env,
@@ -18,6 +25,7 @@ export function createTestServices(): TestServices {
   const repository = new MemoryRepository();
   const mailbox = new MemoryMailboxGateway(repository);
   const blob = new MemoryBlobGateway();
+  const channelGateway = new MemoryChannelGateway();
   const env: Env = {
     DB: undefined as unknown as D1Database,
     MAILBOX: undefined as unknown as DurableObjectNamespace,
@@ -31,7 +39,7 @@ export function createTestServices(): TestServices {
     ALLOW_DID_KEY_TEST_FIXTURES: "true"
   };
 
-  return { env, repository, mailbox, blob, clock: () => 1_800_000_000_000 };
+  return { env, repository, mailbox, blob, channelGateway, clock: () => 1_800_000_000_000 };
 }
 
 export async function generateDidKeyAgent(name: string): Promise<AgentRecord & { privateKey: CryptoKey }> {
@@ -108,6 +116,9 @@ class MemoryRepository implements Repository {
   credits = new Map<string, CreditAccount>();
   challenges = new Map<string, LoginChallengeRecord>();
   sessions = new Map<string, WebSessionRecord>();
+  channelIdentities = new Map<string, ChannelIdentityRecord>();
+  channelThreads = new Map<string, ChannelThreadRecord>();
+  channelBindings = new Map<string, ChannelBindingRecord>();
 
   async upsertAgent(agent: AgentRecord): Promise<void> {
     this.agents.set(agent.did, agent);
@@ -122,6 +133,57 @@ class MemoryRepository implements Repository {
 
   async listAgentsForDid(did: string): Promise<AgentRecord[]> {
     return [...this.agents.values()].filter((agent) => agent.did === did || agent.mailboxId === did);
+  }
+
+  async upsertChannelIdentity(identity: ChannelIdentityRecord): Promise<void> {
+    this.channelIdentities.set(identity.syntheticDid, { ...identity });
+  }
+
+  async getChannelIdentityBySyntheticDid(syntheticDid: string): Promise<ChannelIdentityRecord | null> {
+    const identity = this.channelIdentities.get(syntheticDid);
+    return identity ? { ...identity } : null;
+  }
+
+  async getChannelIdentityByExternalId(transport: ChannelIdentityRecord["transport"], externalId: string): Promise<ChannelIdentityRecord | null> {
+    const identity = [...this.channelIdentities.values()]
+      .find((entry) => entry.transport === transport && entry.externalId === externalId);
+    return identity ? { ...identity } : null;
+  }
+
+  async upsertChannelThread(thread: ChannelThreadRecord): Promise<void> {
+    this.channelThreads.set(thread.nmailThread, { ...thread });
+  }
+
+  async getChannelThreadByExternal(transport: ChannelThreadRecord["transport"], externalThreadId: string, agentDid: string): Promise<ChannelThreadRecord | null> {
+    const thread = [...this.channelThreads.values()]
+      .find((entry) => entry.transport === transport && entry.externalThreadId === externalThreadId && entry.agentDid === agentDid);
+    return thread ? { ...thread } : null;
+  }
+
+  async getChannelThreadByNmailThread(nmailThread: string): Promise<ChannelThreadRecord | null> {
+    const thread = this.channelThreads.get(nmailThread);
+    return thread ? { ...thread } : null;
+  }
+
+  async createChannelBinding(input: ChannelBindingInput): Promise<ChannelBindingRecord> {
+    const binding: ChannelBindingRecord = {
+      id: crypto.randomUUID(),
+      ...input
+    };
+    this.channelBindings.set(binding.id, { ...binding });
+    return { ...binding };
+  }
+
+  async listChannelBindings(ownerDid: string): Promise<ChannelBindingRecord[]> {
+    return [...this.channelBindings.values()]
+      .filter((binding) => binding.ownerDid === ownerDid)
+      .map((binding) => ({ ...binding }));
+  }
+
+  async deleteChannelBinding(id: string, ownerDid: string): Promise<boolean> {
+    const binding = this.channelBindings.get(id);
+    if (!binding || binding.ownerDid !== ownerDid) return false;
+    return this.channelBindings.delete(id);
   }
 
   async createMessage(message: MessageRecord): Promise<void> {
@@ -279,6 +341,20 @@ class MemoryMailboxGateway implements MailboxGateway {
     delivery.ackedAt = now;
     await this.repository.updateDelivery(delivery);
     return { status: state };
+  }
+}
+
+class MemoryChannelGateway implements ChannelGateway {
+  egress: ChannelEgressRequest[] = [];
+
+  async queueEgress(request: ChannelEgressRequest): Promise<ChannelEgressResult> {
+    this.egress.push(request);
+    return {
+      recipientDid: request.recipientDid,
+      transport: request.identity.transport,
+      externalId: request.identity.externalId,
+      status: "queued"
+    };
   }
 }
 
