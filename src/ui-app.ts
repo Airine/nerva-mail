@@ -844,6 +844,116 @@ export function ownerConsoleHtml(): string {
       margin: 0;
       font-size: 16px;
     }
+    .topbar-actions {
+      justify-content: flex-end;
+    }
+    select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      background: var(--panel);
+      color: var(--text);
+      padding: 9px 10px;
+      outline: none;
+    }
+    .channel-section {
+      display: grid;
+      gap: 8px;
+      padding-bottom: 6px;
+    }
+    .channel-section h4 {
+      margin: 0;
+      font-size: 11px;
+      font-weight: 650;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      color: var(--text-2);
+    }
+    .channel-address {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border-soft);
+      border-radius: var(--r-md);
+      background: var(--panel);
+    }
+    .channel-address code {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--text);
+      overflow-wrap: anywhere;
+    }
+    .channel-copy {
+      flex: 0 0 auto;
+      height: 30px;
+      padding: 0 12px;
+      border-radius: var(--r-sm);
+      background: var(--panel-2);
+      color: var(--text-2);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 550;
+    }
+    .channel-copy:hover {
+      background: var(--card-hover);
+      color: var(--text);
+    }
+    .chip.live {
+      background: var(--accent-dim);
+      color: var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent-line);
+    }
+    .chip.pending {
+      background: var(--panel-2);
+      color: var(--text-3);
+    }
+    .binding-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 11px;
+      border: 1px solid var(--border-soft);
+      border-radius: var(--r-md);
+      background: var(--card);
+      margin-bottom: 6px;
+    }
+    .binding-row div {
+      min-width: 0;
+    }
+    .binding-row small {
+      display: block;
+      color: var(--text-3);
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .binding-form {
+      display: grid;
+      grid-template-columns: minmax(92px, 120px) minmax(0, 1fr) minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+    }
+    .binding-form input, .binding-form select {
+      height: 36px;
+    }
+    .binding-form .primary {
+      height: 36px;
+      padding: 0 14px;
+      white-space: nowrap;
+    }
+    .channel-error {
+      color: var(--risk-high);
+    }
+    @media (max-width: 620px) {
+      .binding-form {
+        grid-template-columns: 1fr;
+      }
+    }
     @media (max-width: 1020px) {
       .topbar {
         grid-template-columns: 1fr 1fr;
@@ -940,7 +1050,10 @@ export function ownerConsoleHtml(): string {
       <div class="metric"><b id="inboxCount">0</b><span data-i18n="inboxMetric">收件箱</span></div>
       <div class="metric"><b id="heldCredits">0</b><span data-i18n="heldMetric">冻结积分</span></div>
       <div class="metric"><b id="activeLeases">0</b><span data-i18n="leasesMetric">活跃租约</span></div>
-      <button id="composeButton" class="compose" data-i18n="compose">+ 写信</button>
+      <div class="row gap-2 topbar-actions">
+        <button id="channelsButton" class="lang-toggle" type="button" data-i18n="channelsButton">渠道</button>
+        <button id="composeButton" class="compose" data-i18n="compose">+ 写信</button>
+      </div>
     </header>
     <section class="layout">
       <aside class="pane agents-pane">
@@ -962,11 +1075,47 @@ export function ownerConsoleHtml(): string {
     <form id="composeForm" method="dialog">
       <div class="dialog-head"><h2 data-i18n="composeTitle">撰写任务邮件</h2><button id="composeCloseButton" class="action secondary" type="button" data-i18n="close">关闭</button></div>
       <div class="dialog-body">
-        <label><span data-i18n="toDid">收件地址或 DID</span><input id="composeTo" required placeholder="agent-3ZMn2A@nervafs.xyz" data-i18n-placeholder="composeToPlaceholder"></label>
+        <label><span data-i18n="recipientKind">收件人类型</span>
+          <select id="composeKind">
+            <option value="nerva" data-i18n="recipientNerva">Nerva 地址或 DID</option>
+            <option value="email" data-i18n="recipientEmail">外部邮箱（email）</option>
+          </select>
+        </label>
+        <label><span id="composeToLabel" data-i18n="toDid">收件地址或 DID</span><input id="composeTo" required placeholder="agent-3ZMn2A@nervafs.xyz" data-i18n-placeholder="composeToPlaceholder"></label>
         <label><span data-i18n="goal">目标</span><textarea id="composeGoal" required></textarea></label>
         <label><span data-i18n="postageCredits">邮资积分</span><input id="composePostage" type="number" min="0" value="0"></label>
         <button class="primary" type="submit" value="default" data-i18n="sendTask">发送 task.request</button>
+        <p id="composeExternalNote" class="notice hidden" data-i18n="composeExternalNote">外部邮箱会先解析成合成地址；发送后由渠道网关排队投递。</p>
         <p class="notice" data-i18n="attachmentsDisabled">Phase 1 暂不支持附件。</p>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="channelsDialog">
+    <form method="dialog">
+      <div class="dialog-head"><h2 data-i18n="channelsTitle">渠道</h2><button id="channelsCloseButton" class="action secondary" type="button" data-i18n="close">关闭</button></div>
+      <div class="dialog-body">
+        <div class="channel-section">
+          <h4 data-i18n="channelAddressTitle">你的收件地址</h4>
+          <p class="notice" data-i18n="channelAddressHint">把这个地址给任何人，他们直接发邮件到这里，就能触达你的 Agent。</p>
+          <div id="channelsAddress"></div>
+        </div>
+        <div class="channel-section">
+          <h4 data-i18n="channelTransportsTitle">渠道接入状态</h4>
+          <div id="channelsTransports" class="chips"></div>
+        </div>
+        <div class="channel-section">
+          <h4 data-i18n="channelBindingsTitle">渠道绑定</h4>
+          <p class="notice" data-i18n="channelBindingsHint">把某个 Slack/Telegram/飞书 会话绑定到当前 Agent。Email 靠地址解析，无需绑定。</p>
+          <div id="channelsBindings"></div>
+          <div class="binding-form">
+            <select id="bindingTransport"></select>
+            <input id="bindingWorkspace" data-i18n-placeholder="bindingWorkspacePlaceholder" placeholder="workspace / chat id">
+            <input id="bindingDisplay" data-i18n-placeholder="bindingDisplayPlaceholder" placeholder="备注名（可选）">
+            <button id="bindingAddButton" class="primary" type="button" data-i18n="channelBindingAdd">新增绑定</button>
+          </div>
+          <p id="channelsError" class="notice channel-error hidden"></p>
+        </div>
       </div>
     </form>
   </dialog>
@@ -1082,7 +1231,30 @@ export function ownerConsoleHtml(): string {
         transport_email: "邮件",
         transport_slack: "Slack",
         transport_telegram: "Telegram",
-        transport_feishu: "飞书"
+        transport_feishu: "飞书",
+        channelsButton: "渠道",
+        channelsTitle: "渠道",
+        channelAddressTitle: "你的收件地址",
+        channelAddressHint: "把这个地址给任何人，他们直接发邮件到这里，就能触达你的 Agent。",
+        channelTransportsTitle: "渠道接入状态",
+        channelBindingsTitle: "渠道绑定",
+        channelBindingsHint: "把某个 Slack/Telegram/飞书 会话绑定到当前 Agent。Email 靠地址解析，无需绑定。",
+        channelBindingAdd: "新增绑定",
+        channelBindingRemove: "删除",
+        channelNoBindings: "还没有绑定。",
+        channelBindingIncomplete: "请选择渠道并填写会话 ID。",
+        channelBindingFailed: "操作失败，请重试。",
+        bindingWorkspacePlaceholder: "workspace / chat id",
+        bindingDisplayPlaceholder: "备注名（可选）",
+        transportLive: "已接通",
+        transportPending: "接口就绪",
+        recipientKind: "收件人类型",
+        recipientNerva: "Nerva 地址或 DID",
+        recipientEmail: "外部邮箱（email）",
+        composeExternalNote: "外部邮箱会先解析成合成地址；发送后由渠道网关排队投递。",
+        toEmail: "外部邮箱地址",
+        copy: "复制",
+        copied: "已复制"
       },
       en: {
         documentTitle: "Agent Mail Owner Console",
@@ -1193,10 +1365,35 @@ export function ownerConsoleHtml(): string {
         transport_email: "Email",
         transport_slack: "Slack",
         transport_telegram: "Telegram",
-        transport_feishu: "Feishu"
+        transport_feishu: "Feishu",
+        channelsButton: "Channels",
+        channelsTitle: "Channels",
+        channelAddressTitle: "Your inbound address",
+        channelAddressHint: "Share this address with anyone. They can email it directly to reach your Agent.",
+        channelTransportsTitle: "Transport status",
+        channelBindingsTitle: "Channel bindings",
+        channelBindingsHint: "Bind a Slack/Telegram/Feishu conversation to the current Agent. Email routes by address and needs no binding.",
+        channelBindingAdd: "Add binding",
+        channelBindingRemove: "Remove",
+        channelNoBindings: "No bindings yet.",
+        channelBindingIncomplete: "Pick a transport and enter the chat ID.",
+        channelBindingFailed: "Action failed. Please try again.",
+        bindingWorkspacePlaceholder: "workspace / chat id",
+        bindingDisplayPlaceholder: "Label (optional)",
+        transportLive: "Live",
+        transportPending: "Interface ready",
+        recipientKind: "Recipient type",
+        recipientNerva: "Nerva address or DID",
+        recipientEmail: "External email",
+        composeExternalNote: "External email is first resolved to a synthetic address; after sending, the channel gateway queues delivery.",
+        toEmail: "External email address",
+        copy: "Copy",
+        copied: "Copied"
       }
     };
-    const state = { locale: initialLocale(), session: null, mailboxId: null, messages: [], selected: null, challenge: null, loginPollTimer: null };
+    const state = { locale: initialLocale(), session: null, mailboxId: null, mailboxes: [], messages: [], selected: null, challenge: null, loginPollTimer: null, channels: null };
+    const LIVE_TRANSPORTS = new Set(["email"]);
+    const BINDABLE_TRANSPORTS = new Set(["slack", "telegram", "feishu"]);
     const el = (id) => document.getElementById(id);
     const api = async (path, options = {}) => {
       const response = await fetch(path, {
@@ -1369,6 +1566,7 @@ export function ownerConsoleHtml(): string {
       el("activeDid").textContent = displayIdentity(state.session.did);
       el("activeDid").title = state.session.did;
       el("heldCredits").textContent = data.credits?.held ?? 0;
+      state.mailboxes = data.mailboxes || [];
       el("agents").innerHTML = "";
       for (const box of data.mailboxes) {
         const card = document.createElement("button");
@@ -1647,15 +1845,37 @@ export function ownerConsoleHtml(): string {
       showLogin();
     };
 
-    el("composeButton").onclick = () => el("composeDialog").showModal();
+    function applyComposeKind() {
+      const external = el("composeKind").value === "email";
+      el("composeToLabel").textContent = t(external ? "toEmail" : "toDid");
+      el("composeTo").setAttribute("placeholder", external ? "alice@example.com" : t("composeToPlaceholder"));
+      el("composeExternalNote").classList.toggle("hidden", !external);
+    }
+
+    el("composeButton").onclick = () => {
+      el("composeKind").value = "nerva";
+      applyComposeKind();
+      el("composeDialog").showModal();
+    };
     el("composeCloseButton").onclick = () => el("composeDialog").close();
+    el("composeKind").onchange = applyComposeKind;
     el("composeForm").onsubmit = async (event) => {
       event.preventDefault();
+      const recipient = el("composeTo").value.trim();
+      if (!recipient) return;
+      let to = recipient;
+      if (el("composeKind").value === "email") {
+        const resolved = await api("/v0/ui/channels/identities/resolve", {
+          method: "POST",
+          body: JSON.stringify({ transport: "email", externalId: recipient })
+        });
+        to = resolved.identity.syntheticDid;
+      }
       await api("/v0/ui/messages", {
         method: "POST",
         body: JSON.stringify({
           type: "task.request",
-          to: [el("composeTo").value.trim()],
+          to: [to],
           body: { goal: el("composeGoal").value.trim() },
           postage: { creditAmount: Number(el("composePostage").value || "0") },
           attachments: []
@@ -1664,6 +1884,129 @@ export function ownerConsoleHtml(): string {
       el("composeDialog").close();
       await loadMessages(state.mailboxId);
     };
+
+    async function openChannels() {
+      el("channelsError").classList.add("hidden");
+      el("channelsDialog").showModal();
+      await loadChannels();
+    }
+
+    async function loadChannels() {
+      state.channels = await api("/v0/ui/channels");
+      renderChannels();
+    }
+
+    function renderChannels() {
+      renderChannelAddresses();
+      renderChannelTransports();
+      renderChannelBindings();
+      renderBindingTransportOptions();
+    }
+
+    function renderChannelAddresses() {
+      const container = el("channelsAddress");
+      const boxes = state.mailboxes.length ? state.mailboxes : [{ did: state.session?.did }];
+      const rows = boxes.map((box) => {
+        const address = nervaAddressForDid(box.did || box.mailboxId) || compactDid(box.did || box.mailboxId);
+        return "<div class='channel-address'><code>" + escapeHtml(address) + "</code><button type='button' class='channel-copy' data-copy='" + escapeHtml(address) + "'>" + escapeHtml(t("copy")) + "</button></div>";
+      });
+      container.innerHTML = rows.join("");
+      container.querySelectorAll("[data-copy]").forEach((node) => {
+        node.onclick = async () => {
+          try {
+            await navigator.clipboard.writeText(node.dataset.copy);
+            node.textContent = t("copied");
+            setTimeout(() => { node.textContent = t("copy"); }, 1500);
+          } catch {}
+        };
+      });
+    }
+
+    function renderChannelTransports() {
+      const transports = state.channels?.supportedTransports || [];
+      el("channelsTransports").innerHTML = transports.map((transport) => {
+        const live = LIVE_TRANSPORTS.has(transport);
+        const cls = live ? "chip live" : "chip pending";
+        const status = live ? t("transportLive") : t("transportPending");
+        return "<span class='" + cls + "'>" + escapeHtml(transportLabel(transport)) + " · " + escapeHtml(status) + "</span>";
+      }).join("");
+    }
+
+    function renderChannelBindings() {
+      const container = el("channelsBindings");
+      const bindings = state.channels?.bindings || [];
+      if (!bindings.length) {
+        container.innerHTML = "<div class='empty'>" + escapeHtml(t("channelNoBindings")) + "</div>";
+        return;
+      }
+      container.innerHTML = "";
+      bindings.forEach((binding) => {
+        const row = document.createElement("div");
+        row.className = "binding-row";
+        row.innerHTML = "<div><strong>" + escapeHtml(transportLabel(binding.transport)) + (binding.displayName ? " · " + escapeHtml(binding.displayName) : "") + "</strong><small>" + escapeHtml(binding.workspaceOrChat) + "</small></div>";
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "action danger";
+        remove.textContent = t("channelBindingRemove");
+        remove.onclick = () => deleteBinding(binding.id);
+        row.appendChild(remove);
+        container.appendChild(row);
+      });
+    }
+
+    function renderBindingTransportOptions() {
+      const select = el("bindingTransport");
+      const transports = (state.channels?.supportedTransports || []).filter((transport) => BINDABLE_TRANSPORTS.has(transport));
+      select.innerHTML = transports.map((transport) =>
+        "<option value='" + escapeHtml(transport) + "'>" + escapeHtml(transportLabel(transport)) + "</option>"
+      ).join("");
+    }
+
+    function setChannelsError(message) {
+      const node = el("channelsError");
+      node.textContent = message || "";
+      node.classList.toggle("hidden", !message);
+    }
+
+    async function createBinding() {
+      const transport = el("bindingTransport").value;
+      const workspaceOrChat = el("bindingWorkspace").value.trim();
+      if (!transport || !workspaceOrChat) {
+        setChannelsError(t("channelBindingIncomplete"));
+        return;
+      }
+      setChannelsError("");
+      try {
+        await api("/v0/ui/channels/bindings", {
+          method: "POST",
+          body: JSON.stringify({
+            transport,
+            workspaceOrChat,
+            agentDid: state.session.did,
+            displayName: el("bindingDisplay").value.trim() || undefined
+          })
+        });
+        el("bindingWorkspace").value = "";
+        el("bindingDisplay").value = "";
+        await loadChannels();
+      } catch (error) {
+        setChannelsError(error.message || t("channelBindingFailed"));
+      }
+    }
+
+    async function deleteBinding(id) {
+      setChannelsError("");
+      try {
+        await api("/v0/ui/channels/bindings/" + encodeURIComponent(id), { method: "DELETE" });
+        await loadChannels();
+      } catch (error) {
+        setChannelsError(error.message || t("channelBindingFailed"));
+      }
+    }
+
+    el("channelsButton").onclick = () => { openChannels(); };
+    el("channelsCloseButton").onclick = () => el("channelsDialog").close();
+    el("bindingAddButton").onclick = () => { createBinding(); };
 
     function escapeHtml(value) {
       return String(value ?? "").replace(/[&<>"']/g, (char) => ({
