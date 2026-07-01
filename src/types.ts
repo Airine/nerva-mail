@@ -9,6 +9,7 @@ export interface Env {
   CHANNEL_EMAIL_INBOUND_ENABLED?: string;
   CHANNEL_EMAIL_OUTBOUND_PROVIDER?: string;
   CHANNEL_EMAIL_DNS_READY?: string;
+  EMAIL?: SendEmail;
   BLOB_PROVIDER?: "disabled" | "r2" | string;
   R2_ACCOUNT_ID?: string;
   R2_ACCESS_KEY_ID?: string;
@@ -139,7 +140,8 @@ export interface ChannelEgressResult {
   recipientDid: string;
   transport: ChannelTransport;
   externalId: string;
-  status: "queued";
+  status: "queued" | "sent";
+  providerMessageId?: string | undefined;
 }
 
 export type ChannelReadinessState = "live" | "unconfigured" | "not_implemented";

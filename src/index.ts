@@ -9,7 +9,14 @@ import {
   type ResolvedAddress
 } from "./address";
 import { DisabledBlobGateway, R2BlobGateway } from "./blob";
-import { channelGatewayDidFromEnvelope, channelGatewayDids, channelReadiness, isAllowedChannelGateway, QueuedChannelGateway } from "./channel-gateway";
+import {
+  channelGatewayDidFromEnvelope,
+  channelGatewayDids,
+  channelReadiness,
+  ChannelEgressError,
+  CloudflareEmailChannelGateway,
+  isAllowedChannelGateway
+} from "./channel-gateway";
 import { DurableObjectMailboxGateway } from "./mailbox-gateway";
 import { MailboxObject } from "./mailbox-object";
 import { D1Repository } from "./repository";
@@ -569,7 +576,7 @@ function createServices(env: Env): Services {
     repository: new D1Repository(env.DB),
     mailbox: new DurableObjectMailboxGateway(env),
     blob: blobUploadsEnabled(env) ? new R2BlobGateway(env) : new DisabledBlobGateway(),
-    channelGateway: new QueuedChannelGateway(),
+    channelGateway: new CloudflareEmailChannelGateway(env),
     clock: () => Date.now()
   };
 }
@@ -627,16 +634,20 @@ async function sendMessage(body: Record<string, unknown>, senderDid: string, ser
   for (const recipientDid of to) {
     const identity = syntheticRecipients.get(recipientDid);
     if (identity) {
-      if (identity.transport === "email" && !emailOutboundImplemented(env)) {
-        return json({ error: "channel_egress_not_implemented", recipientDid, transport: identity.transport }, 501);
+      try {
+        egress.push(await services.channelGateway.queueEgress({
+          messageId,
+          senderDid: from,
+          recipientDid,
+          identity,
+          raw: { ...normalizedBody, id: messageId, version: "nmail/0.1" }
+        }));
+      } catch (error) {
+        if (error instanceof ChannelEgressError) {
+          return json({ error: error.message, recipientDid, transport: identity.transport, ...error.details }, error.status);
+        }
+        throw error;
       }
-      egress.push(await services.channelGateway.queueEgress({
-        messageId,
-        senderDid: from,
-        recipientDid,
-        identity,
-        raw: { ...normalizedBody, id: messageId, version: "nmail/0.1" }
-      }));
       continue;
     }
     const delivery: DeliveryRecord = {
@@ -908,10 +919,6 @@ function parseChannelTransport(value: unknown): ChannelTransport {
 
 function supportedChannelTransports(): ChannelTransport[] {
   return ["email", "slack", "telegram", "feishu"];
-}
-
-function emailOutboundImplemented(_env: Env): boolean {
-  return false;
 }
 
 function firstChannelGatewayDid(env: Env): string | null {

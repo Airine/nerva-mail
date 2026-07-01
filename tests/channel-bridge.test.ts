@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createSyntheticDid, isSyntheticDid, normalizeExternalId, parseSyntheticDid } from "../src/address";
+import { CloudflareEmailChannelGateway } from "../src/channel-gateway";
 import { handleEmail, handleRequest } from "../src/index";
 import {
   createSignedRequest,
@@ -250,7 +251,7 @@ describe("channel bridge", () => {
       readiness: {
         gatewayConfigured: false,
         transports: {
-          email: { inbound: "unconfigured", outbound: "not_implemented" },
+          email: { inbound: "unconfigured", outbound: "unconfigured" },
           slack: { inbound: "not_implemented", outbound: "not_implemented" },
           telegram: { inbound: "not_implemented", outbound: "not_implemented" },
           feishu: { inbound: "not_implemented", outbound: "not_implemented" }
@@ -283,10 +284,11 @@ describe("channel bridge", () => {
     await expect(deleteResponse.json()).resolves.toEqual({ status: "deleted" });
   });
 
-  it("rejects synthetic email egress until a real outbound provider is implemented", async () => {
+  it("rejects synthetic email egress until Cloudflare Email outbound is configured", async () => {
     const services = createTestServices();
     const owner = await generateDidKeyAgent("owner");
     await services.repository.upsertAgent(owner);
+    services.channelGateway = new CloudflareEmailChannelGateway(services.env);
     const cookie = await loginViaCli(owner, services);
 
     const syntheticDid = await createSyntheticDid("email", "alice@example.com");
@@ -316,13 +318,95 @@ describe("channel bridge", () => {
       services
     );
 
-    expect(sendResponse.status).toBe(501);
+    expect(sendResponse.status).toBe(503);
     await expect(sendResponse.json()).resolves.toEqual({
-      error: "channel_egress_not_implemented",
+      error: "channel_egress_unconfigured",
       recipientDid: syntheticDid,
       transport: "email"
     });
-    expect(services.channelGateway.egress).toEqual([]);
+  });
+
+  it("sends synthetic email egress through the Cloudflare Email binding when configured", async () => {
+    const services = createTestServices();
+    const owner = await generateHostedDidWebAgent("agent-3ZMn2A");
+    await services.repository.upsertAgent(owner);
+    const cookie = await loginViaCli(owner, services);
+    const sentEmail: unknown[] = [];
+    services.env.CHANNEL_EMAIL_OUTBOUND_PROVIDER = "cloudflare";
+    services.env.CHANNEL_EMAIL_DNS_READY = "true";
+    services.env.EMAIL = {
+      async send(message: unknown) {
+        sentEmail.push(message);
+        return { messageId: "cf-email-123" };
+      }
+    } as SendEmail;
+    services.channelGateway = new CloudflareEmailChannelGateway(services.env);
+
+    const channelsResponse = await handleRequest(
+      new Request("https://mail.nervafs.xyz/v0/ui/channels", {
+        headers: { Cookie: cookie }
+      }),
+      services.env,
+      services
+    );
+    await expect(channelsResponse.json()).resolves.toMatchObject({
+      readiness: {
+        transports: {
+          email: { outbound: "live" }
+        }
+      }
+    });
+
+    const syntheticDid = await createSyntheticDid("email", "alice@example.com");
+    await services.repository.upsertChannelIdentity({
+      syntheticDid,
+      transport: "email",
+      externalId: "alice@example.com",
+      displayName: "Alice",
+      createdAt: services.clock(),
+      updatedAt: services.clock()
+    });
+
+    const sendResponse = await handleRequest(
+      new Request("https://mail.nervafs.xyz/v0/ui/messages", {
+        method: "POST",
+        headers: { Cookie: cookie, Origin: "https://mail.nervafs.xyz" },
+        body: JSON.stringify({
+          type: "task.request",
+          to: [syntheticDid],
+          thread: "nthread:reply-email",
+          body: { goal: "Reply with the current task status" },
+          postage: { creditAmount: 0 },
+          attachments: []
+        })
+      }),
+      services.env,
+      services
+    );
+
+    expect(sendResponse.status).toBe(202);
+    const sent = await sendResponse.json() as {
+      deliveries: Array<{ mailboxId: string }>;
+      egress: Array<{ recipientDid: string; transport: string; externalId: string; status: string; providerMessageId?: string }>;
+    };
+    expect(sent.deliveries).toEqual([]);
+    expect(sent.egress).toEqual([
+      {
+        recipientDid: syntheticDid,
+        transport: "email",
+        externalId: "alice@example.com",
+        status: "sent",
+        providerMessageId: "cf-email-123"
+      }
+    ]);
+    expect(sentEmail).toEqual([
+      expect.objectContaining({
+        from: "agent-3ZMn2A@nervafs.xyz",
+        to: "alice@example.com",
+        subject: "Reply with the current task status",
+        text: "Reply with the current task status"
+      })
+    ]);
   });
 
   it("ingests Cloudflare routed email into the addressed agent mailbox", async () => {

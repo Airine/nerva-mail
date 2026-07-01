@@ -12,8 +12,15 @@
   ],
   "vars": {
     "RELAY_ORIGIN": "https://mail.nervafs.xyz",
-    "BLOB_PROVIDER": "disabled"
+    "BLOB_PROVIDER": "disabled",
+    "CHANNEL_EMAIL_OUTBOUND_PROVIDER": "cloudflare"
   },
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "remote": true
+    }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
