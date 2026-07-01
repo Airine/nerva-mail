@@ -25,6 +25,8 @@ try {
     await addressResolve();
   } else if ((args._[0] === "mail" || args._[0] === "inbox") && (args._[1] === "inbox" || args._[1] === "sync" || args._[0] === "inbox")) {
     await mailInbox();
+  } else if (args._[0] === "mail" && args._[1] === "next") {
+    await mailNext();
   } else if (args._[0] === "mail" && (args._[1] === "read" || args._[1] === "show")) {
     await mailRead();
   } else if (args._[0] === "mail" && args._[1] === "claim") {
@@ -222,6 +224,26 @@ async function mailInbox() {
   outputJson(await signedJsonFetch(ctx, "GET", path));
 }
 
+async function mailNext() {
+  const ctx = await resolveMailContext();
+  const cursor = args.cursor && args.cursor !== "true" ? args.cursor : "0";
+  const leaseSeconds = numberArg(args["lease-seconds"] ?? args.lease, 300, "--lease-seconds");
+  const inbox = await signedJsonFetch(ctx, "GET", `/v0/mailboxes/${encodeURIComponent(ctx.mailboxId)}/messages?cursor=${encodeURIComponent(cursor)}`);
+  const messages = Array.isArray(inbox.messages) ? inbox.messages : [];
+  const message = messages.find(isClaimableTaskRequest);
+  if (!message) {
+    outputJson({ status: "empty", cursor: inbox.cursor ?? cursor, message: null, claim: null });
+    return;
+  }
+
+  const claim = await signedJsonFetch(ctx, "POST", `/v0/mailboxes/${encodeURIComponent(ctx.mailboxId)}/claim`, {
+    messageId: message.messageId,
+    agentId: ctx.did,
+    leaseSeconds
+  });
+  outputJson({ status: "claimed", cursor: inbox.cursor ?? cursor, message, claim });
+}
+
 async function mailRead() {
   const ctx = await resolveMailContext();
   const messageId = messageIdArg();
@@ -370,6 +392,11 @@ function numberArg(value, fallback, name) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${name} must be a non-negative number`);
   return parsed;
+}
+
+function isClaimableTaskRequest(row) {
+  const type = row?.message?.type ?? row?.message?.raw?.type ?? row?.type;
+  return row?.deliveryState === "available" && type === "task.request";
 }
 
 function outputJson(value) {
@@ -553,6 +580,7 @@ Usage:
   nmail agents register [--relay <url>] [--did <did>]
   nmail address resolve <agent@nervafs.xyz>
   nmail mail inbox [--cursor <cursor>] [--raw]
+  nmail mail next [--cursor <cursor>] [--lease-seconds 300]
   nmail mail read <message-id>
   nmail mail claim <message-id> [--lease-seconds 300]
   nmail mail ack <message-id>

@@ -25,7 +25,7 @@ const bossAddress = "boss-agent@nervafs.xyz";
 const bossAddressDid = "did:web:mail.nervafs.xyz:agents:boss-agent";
 const inboundMessageId = "sha256:inbound";
 const acceptedMessages = [];
-let claimed = false;
+const claimRequests = [];
 let acked = false;
 const inboundRaw = {
   id: inboundMessageId,
@@ -127,9 +127,10 @@ const server = createServer(async (request, response) => {
   const mailboxClaimMatch = url.pathname.match(/^\/v0\/mailboxes\/(.+)\/claim$/);
   if (request.method === "POST" && mailboxClaimMatch?.[1] && decodeURIComponent(mailboxClaimMatch[1]) === did) {
     const body = JSON.parse(bodyText);
-    claimed = body.messageId === inboundMessageId && body.agentId === did;
-    response.writeHead(claimed ? 200 : 400, { "Content-Type": "application/json" });
-    response.end(JSON.stringify(claimed ? { status: "claimed", leaseUntil: "2027-01-15T08:05:00.000Z" } : { error: "bad_claim" }));
+    const claimOk = body.messageId === inboundMessageId && body.agentId === did;
+    if (claimOk) claimRequests.push(body);
+    response.writeHead(claimOk ? 200 : 400, { "Content-Type": "application/json" });
+    response.end(JSON.stringify(claimOk ? { status: "claimed", leaseUntil: "2027-01-15T08:05:00.000Z" } : { error: "bad_claim" }));
     return;
   }
 
@@ -356,6 +357,29 @@ try {
     process.exit(1);
   }
 
+  const nextResult = await run(process.execPath, [
+    "bin/nmail.mjs",
+    "mail",
+    "next",
+    "--relay",
+    relay
+  ], env);
+  if (nextResult.code !== 0) {
+    console.error(nextResult.stderr || nextResult.stdout);
+    process.exit(nextResult.code ?? 1);
+  }
+  const next = JSON.parse(nextResult.stdout);
+  if (
+    next.status !== "claimed" ||
+    next.message?.messageId !== inboundMessageId ||
+    next.message?.message?.raw?.body?.goal !== "Report CLI mailbox status" ||
+    next.claim?.status !== "claimed" ||
+    claimRequests.length !== 1
+  ) {
+    console.error(nextResult.stdout);
+    process.exit(1);
+  }
+
   const readResult = await run(process.execPath, [
     "bin/nmail.mjs",
     "mail",
@@ -369,6 +393,7 @@ try {
     process.exit(readResult.code || 1);
   }
 
+  const claimCountBeforeExplicitClaim = claimRequests.length;
   const claimResult = await run(process.execPath, [
     "bin/nmail.mjs",
     "mail",
@@ -377,7 +402,7 @@ try {
     "--relay",
     relay
   ], env);
-  if (claimResult.code !== 0 || !claimed) {
+  if (claimResult.code !== 0 || claimRequests.length !== claimCountBeforeExplicitClaim + 1) {
     console.error(claimResult.stderr || claimResult.stdout);
     process.exit(claimResult.code || 1);
   }
