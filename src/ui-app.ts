@@ -909,6 +909,20 @@ export function ownerConsoleHtml(): string {
       background: var(--panel-2);
       color: var(--text-3);
     }
+    .transport-list {
+      display: grid;
+      gap: 8px;
+    }
+    .transport-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .transport-row strong {
+      min-width: 76px;
+      font-size: 13px;
+    }
     .binding-row {
       display: flex;
       align-items: center;
@@ -1085,7 +1099,8 @@ export function ownerConsoleHtml(): string {
         <label><span data-i18n="goal">目标</span><textarea id="composeGoal" required></textarea></label>
         <label><span data-i18n="postageCredits">邮资积分</span><input id="composePostage" type="number" min="0" value="0"></label>
         <button class="primary" type="submit" value="default" data-i18n="sendTask">发送 task.request</button>
-        <p id="composeExternalNote" class="notice hidden" data-i18n="composeExternalNote">外部邮箱会先解析成合成地址；发送后由渠道网关排队投递。</p>
+        <p id="composeExternalNote" class="notice hidden"></p>
+        <p id="composeError" class="notice channel-error hidden"></p>
         <p class="notice" data-i18n="attachmentsDisabled">Phase 1 暂不支持附件。</p>
       </div>
     </form>
@@ -1097,12 +1112,12 @@ export function ownerConsoleHtml(): string {
       <div class="dialog-body">
         <div class="channel-section">
           <h4 data-i18n="channelAddressTitle">你的收件地址</h4>
-          <p class="notice" data-i18n="channelAddressHint">把这个地址给任何人，他们直接发邮件到这里，就能触达你的 Agent。</p>
+          <p id="channelsAddressHint" class="notice"></p>
           <div id="channelsAddress"></div>
         </div>
         <div class="channel-section">
           <h4 data-i18n="channelTransportsTitle">渠道接入状态</h4>
-          <div id="channelsTransports" class="chips"></div>
+          <div id="channelsTransports" class="transport-list"></div>
         </div>
         <div class="channel-section">
           <h4 data-i18n="channelBindingsTitle">渠道绑定</h4>
@@ -1235,7 +1250,8 @@ export function ownerConsoleHtml(): string {
         channelsButton: "渠道",
         channelsTitle: "渠道",
         channelAddressTitle: "你的收件地址",
-        channelAddressHint: "把这个地址给任何人，他们直接发邮件到这里，就能触达你的 Agent。",
+        channelAddressHintLive: "把这个地址给任何人，他们直接发邮件到这里，就能触达你的 Agent。",
+        channelAddressHintUnconfigured: "入站邮件尚未开通：需管理员配置渠道网关与 MX。配置完成前，发到此地址的邮件不会送达。",
         channelTransportsTitle: "渠道接入状态",
         channelBindingsTitle: "渠道绑定",
         channelBindingsHint: "把某个 Slack/Telegram/飞书 会话绑定到当前 Agent。Email 靠地址解析，无需绑定。",
@@ -1246,12 +1262,18 @@ export function ownerConsoleHtml(): string {
         channelBindingFailed: "操作失败，请重试。",
         bindingWorkspacePlaceholder: "workspace / chat id",
         bindingDisplayPlaceholder: "备注名（可选）",
-        transportLive: "已接通",
-        transportPending: "接口就绪",
+        directionInbound: "入站",
+        directionOutbound: "出站",
+        readyLive: "已接通",
+        readyUnconfigured: "需配置",
+        readyNotImplemented: "未接入",
         recipientKind: "收件人类型",
         recipientNerva: "Nerva 地址或 DID",
         recipientEmail: "外部邮箱（email）",
-        composeExternalNote: "外部邮箱会先解析成合成地址；发送后由渠道网关排队投递。",
+        recipientEmailUnavailable: "（出站未接通）",
+        composeExternalNote: "外部邮箱会先解析为合成地址，再提交给渠道网关。",
+        composeExternalUnavailable: "外部邮箱出站尚未接通，暂不能发往外部地址。",
+        composeSendFailed: "发送失败，请重试。",
         toEmail: "外部邮箱地址",
         copy: "复制",
         copied: "已复制"
@@ -1369,7 +1391,8 @@ export function ownerConsoleHtml(): string {
         channelsButton: "Channels",
         channelsTitle: "Channels",
         channelAddressTitle: "Your inbound address",
-        channelAddressHint: "Share this address with anyone. They can email it directly to reach your Agent.",
+        channelAddressHintLive: "Share this address with anyone. They can email it directly to reach your Agent.",
+        channelAddressHintUnconfigured: "Inbound email isn't enabled yet: an admin must configure the channel gateway and MX. Until then, mail sent here won't be delivered.",
         channelTransportsTitle: "Transport status",
         channelBindingsTitle: "Channel bindings",
         channelBindingsHint: "Bind a Slack/Telegram/Feishu conversation to the current Agent. Email routes by address and needs no binding.",
@@ -1380,19 +1403,24 @@ export function ownerConsoleHtml(): string {
         channelBindingFailed: "Action failed. Please try again.",
         bindingWorkspacePlaceholder: "workspace / chat id",
         bindingDisplayPlaceholder: "Label (optional)",
-        transportLive: "Live",
-        transportPending: "Interface ready",
+        directionInbound: "Inbound",
+        directionOutbound: "Outbound",
+        readyLive: "Live",
+        readyUnconfigured: "Needs setup",
+        readyNotImplemented: "Not available",
         recipientKind: "Recipient type",
         recipientNerva: "Nerva address or DID",
         recipientEmail: "External email",
-        composeExternalNote: "External email is first resolved to a synthetic address; after sending, the channel gateway queues delivery.",
+        recipientEmailUnavailable: "(outbound not wired)",
+        composeExternalNote: "The external email is first resolved to a synthetic address, then handed to the channel gateway.",
+        composeExternalUnavailable: "External email outbound isn't wired yet; sending to external addresses is unavailable.",
+        composeSendFailed: "Send failed. Please try again.",
         toEmail: "External email address",
         copy: "Copy",
         copied: "Copied"
       }
     };
     const state = { locale: initialLocale(), session: null, mailboxId: null, mailboxes: [], messages: [], selected: null, challenge: null, loginPollTimer: null, channels: null };
-    const LIVE_TRANSPORTS = new Set(["email"]);
     const BINDABLE_TRANSPORTS = new Set(["slack", "telegram", "feishu"]);
     const el = (id) => document.getElementById(id);
     const api = async (path, options = {}) => {
@@ -1468,6 +1496,10 @@ export function ownerConsoleHtml(): string {
       applyTranslations();
       if (state.mailboxId) {
         renderMessages();
+      }
+      if (state.session) {
+        applyComposeKind();
+        if (state.channels) renderChannels();
       }
       if (state.challenge) {
         setChallengeStatus(t("waitingSignature"));
@@ -1580,6 +1612,9 @@ export function ownerConsoleHtml(): string {
       if (!data.mailboxes.length) {
         el("agents").innerHTML = "<div class='empty'>" + escapeHtml(t("noRegisteredAgent")) + "</div>";
       }
+      // Load channel readiness so compose reflects it even before the Channels dialog is opened.
+      await loadChannels().catch(() => {});
+      applyComposeKind();
       if (state.mailboxId) await loadMessages(state.mailboxId);
     }
 
@@ -1846,14 +1881,37 @@ export function ownerConsoleHtml(): string {
     };
 
     function applyComposeKind() {
+      const live = composeExternalLive();
+      const emailOption = el("composeKind").querySelector("option[value='email']");
+      if (emailOption) {
+        emailOption.disabled = !live;
+        emailOption.textContent = t("recipientEmail") + (live ? "" : " " + t("recipientEmailUnavailable"));
+      }
+      if (!live && el("composeKind").value === "email") el("composeKind").value = "nerva";
       const external = el("composeKind").value === "email";
       el("composeToLabel").textContent = t(external ? "toEmail" : "toDid");
       el("composeTo").setAttribute("placeholder", external ? "alice@example.com" : t("composeToPlaceholder"));
-      el("composeExternalNote").classList.toggle("hidden", !external);
+      const note = el("composeExternalNote");
+      if (!live) {
+        note.textContent = t("composeExternalUnavailable");
+        note.classList.remove("hidden");
+      } else if (external) {
+        note.textContent = t("composeExternalNote");
+        note.classList.remove("hidden");
+      } else {
+        note.classList.add("hidden");
+      }
+    }
+
+    function setComposeError(message) {
+      const node = el("composeError");
+      node.textContent = message || "";
+      node.classList.toggle("hidden", !message);
     }
 
     el("composeButton").onclick = () => {
       el("composeKind").value = "nerva";
+      setComposeError("");
       applyComposeKind();
       el("composeDialog").showModal();
     };
@@ -1861,26 +1919,37 @@ export function ownerConsoleHtml(): string {
     el("composeKind").onchange = applyComposeKind;
     el("composeForm").onsubmit = async (event) => {
       event.preventDefault();
+      setComposeError("");
       const recipient = el("composeTo").value.trim();
       if (!recipient) return;
-      let to = recipient;
-      if (el("composeKind").value === "email") {
-        const resolved = await api("/v0/ui/channels/identities/resolve", {
-          method: "POST",
-          body: JSON.stringify({ transport: "email", externalId: recipient })
-        });
-        to = resolved.identity.syntheticDid;
+      const external = el("composeKind").value === "email";
+      if (external && !composeExternalLive()) {
+        setComposeError(t("composeExternalUnavailable"));
+        return;
       }
-      await api("/v0/ui/messages", {
-        method: "POST",
-        body: JSON.stringify({
-          type: "task.request",
-          to: [to],
-          body: { goal: el("composeGoal").value.trim() },
-          postage: { creditAmount: Number(el("composePostage").value || "0") },
-          attachments: []
-        })
-      });
+      let to = recipient;
+      try {
+        if (external) {
+          const resolved = await api("/v0/ui/channels/identities/resolve", {
+            method: "POST",
+            body: JSON.stringify({ transport: "email", externalId: recipient })
+          });
+          to = resolved.identity.syntheticDid;
+        }
+        await api("/v0/ui/messages", {
+          method: "POST",
+          body: JSON.stringify({
+            type: "task.request",
+            to: [to],
+            body: { goal: el("composeGoal").value.trim() },
+            postage: { creditAmount: Number(el("composePostage").value || "0") },
+            attachments: []
+          })
+        });
+      } catch (error) {
+        setComposeError(error.message || t("composeSendFailed"));
+        return;
+      }
       el("composeDialog").close();
       await loadMessages(state.mailboxId);
     };
@@ -1905,6 +1974,8 @@ export function ownerConsoleHtml(): string {
 
     function renderChannelAddresses() {
       const container = el("channelsAddress");
+      const inboundLive = transportReadiness("email").inbound === "live";
+      el("channelsAddressHint").textContent = t(inboundLive ? "channelAddressHintLive" : "channelAddressHintUnconfigured");
       const boxes = state.mailboxes.length ? state.mailboxes : [{ did: state.session?.did }];
       const rows = boxes.map((box) => {
         const address = nervaAddressForDid(box.did || box.mailboxId) || compactDid(box.did || box.mailboxId);
@@ -1922,13 +1993,43 @@ export function ownerConsoleHtml(): string {
       });
     }
 
+    function channelReadiness() {
+      return isPlainObject(state.channels?.readiness) ? state.channels.readiness : null;
+    }
+
+    // Forward-compatible: until the relay ships readiness, assume nothing is wired.
+    function transportReadiness(transport) {
+      const entry = channelReadiness()?.transports?.[transport];
+      if (isPlainObject(entry) && typeof entry.inbound === "string" && typeof entry.outbound === "string") {
+        return entry;
+      }
+      return transport === "email"
+        ? { inbound: "unconfigured", outbound: "not_implemented" }
+        : { inbound: "not_implemented", outbound: "not_implemented" };
+    }
+
+    function readinessLabel(value) {
+      if (value === "live") return t("readyLive");
+      if (value === "unconfigured") return t("readyUnconfigured");
+      return t("readyNotImplemented");
+    }
+
+    function readinessClass(value) {
+      return value === "live" ? "chip live" : "chip pending";
+    }
+
+    function composeExternalLive() {
+      return transportReadiness("email").outbound === "live";
+    }
+
     function renderChannelTransports() {
       const transports = state.channels?.supportedTransports || [];
       el("channelsTransports").innerHTML = transports.map((transport) => {
-        const live = LIVE_TRANSPORTS.has(transport);
-        const cls = live ? "chip live" : "chip pending";
-        const status = live ? t("transportLive") : t("transportPending");
-        return "<span class='" + cls + "'>" + escapeHtml(transportLabel(transport)) + " · " + escapeHtml(status) + "</span>";
+        const readiness = transportReadiness(transport);
+        return "<div class='transport-row'><strong>" + escapeHtml(transportLabel(transport)) + "</strong>" +
+          "<span class='" + readinessClass(readiness.inbound) + "'>" + escapeHtml(t("directionInbound")) + " · " + escapeHtml(readinessLabel(readiness.inbound)) + "</span>" +
+          "<span class='" + readinessClass(readiness.outbound) + "'>" + escapeHtml(t("directionOutbound")) + " · " + escapeHtml(readinessLabel(readiness.outbound)) + "</span>" +
+          "</div>";
       }).join("");
     }
 
