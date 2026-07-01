@@ -228,11 +228,16 @@ async function mailNext() {
   const ctx = await resolveMailContext();
   const cursor = args.cursor && args.cursor !== "true" ? args.cursor : "0";
   const leaseSeconds = numberArg(args["lease-seconds"] ?? args.lease, 300, "--lease-seconds");
+  const shouldClaim = args.claim === "true";
   const inbox = await signedJsonFetch(ctx, "GET", `/v0/mailboxes/${encodeURIComponent(ctx.mailboxId)}/messages?cursor=${encodeURIComponent(cursor)}`);
   const messages = Array.isArray(inbox.messages) ? inbox.messages : [];
   const message = messages.find(isClaimableTaskRequest);
   if (!message) {
     outputJson({ status: "empty", cursor: inbox.cursor ?? cursor, message: null, claim: null });
+    return;
+  }
+  if (!shouldClaim) {
+    outputJson({ status: "next", cursor: inbox.cursor ?? cursor, message, claim: null });
     return;
   }
 
@@ -580,7 +585,7 @@ Usage:
   nmail agents register [--relay <url>] [--did <did>]
   nmail address resolve <agent@nervafs.xyz>
   nmail mail inbox [--cursor <cursor>] [--raw]
-  nmail mail next [--cursor <cursor>] [--lease-seconds 300]
+  nmail mail next [--cursor <cursor>] [--claim] [--lease-seconds 300]
   nmail mail read <message-id>
   nmail mail claim <message-id> [--lease-seconds 300]
   nmail mail ack <message-id>

@@ -370,13 +370,36 @@ try {
   }
   const next = JSON.parse(nextResult.stdout);
   if (
-    next.status !== "claimed" ||
+    next.status !== "next" ||
     next.message?.messageId !== inboundMessageId ||
     next.message?.message?.raw?.body?.goal !== "Report CLI mailbox status" ||
-    next.claim?.status !== "claimed" ||
-    claimRequests.length !== 1
+    next.claim !== null ||
+    claimRequests.length !== 0
   ) {
     console.error(nextResult.stdout);
+    process.exit(1);
+  }
+
+  const claimNextResult = await run(process.execPath, [
+    "bin/nmail.mjs",
+    "mail",
+    "next",
+    "--claim",
+    "--relay",
+    relay
+  ], env);
+  if (claimNextResult.code !== 0) {
+    console.error(claimNextResult.stderr || claimNextResult.stdout);
+    process.exit(claimNextResult.code ?? 1);
+  }
+  const claimNext = JSON.parse(claimNextResult.stdout);
+  if (
+    claimNext.status !== "claimed" ||
+    claimNext.message?.messageId !== inboundMessageId ||
+    claimNext.claim?.status !== "claimed" ||
+    claimRequests.length !== 1
+  ) {
+    console.error(claimNextResult.stdout);
     process.exit(1);
   }
 
