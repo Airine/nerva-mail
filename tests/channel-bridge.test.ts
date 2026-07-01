@@ -187,6 +187,15 @@ describe("channel bridge", () => {
     const other = await generateDidKeyAgent("other");
     await services.repository.upsertAgent(owner);
     await services.repository.upsertAgent(other);
+
+    const anonymousChannelsResponse = await handleRequest(
+      new Request("https://mail.nervafs.xyz/v0/ui/channels"),
+      services.env,
+      services
+    );
+    expect(anonymousChannelsResponse.status).toBe(401);
+    await expect(anonymousChannelsResponse.json()).resolves.toEqual({ error: "session_required" });
+
     const cookie = await loginViaCli(owner, services);
 
     const resolveResponse = await handleRequest(

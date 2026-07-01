@@ -313,6 +313,16 @@ async function handleUiRoute(request: Request, env: Env, services: Services, url
     requireSameOriginIfPresent(request, env);
   }
 
+  if (request.method === "GET" && url.pathname === "/v0/ui/channels") {
+    const session = await requireUiSession(request, services);
+    return json({
+      ownerDid: session.did,
+      supportedTransports: supportedChannelTransports(),
+      bindings: await services.repository.listChannelBindings(session.did),
+      identities: []
+    });
+  }
+
   if (request.method === "POST" && url.pathname === "/v0/ui/login/challenge") {
     const body = parseJson<{ did?: string; agentId?: string }>(bodyText);
     const { did, agentId } = normalizeLoginIdentity(body.did, body.agentId);
@@ -412,16 +422,6 @@ async function handleUiRoute(request: Request, env: Env, services: Services, url
         mailboxId: agent.mailboxId,
         displayName: agent.displayName
       }))
-    });
-  }
-
-  if (request.method === "GET" && url.pathname === "/v0/ui/channels") {
-    const session = await requireUiSession(request, services);
-    return json({
-      ownerDid: session.did,
-      supportedTransports: supportedChannelTransports(),
-      bindings: await services.repository.listChannelBindings(session.did),
-      identities: []
     });
   }
 
